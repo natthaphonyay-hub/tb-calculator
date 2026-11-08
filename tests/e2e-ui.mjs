@@ -100,7 +100,7 @@ for (const w of weights) {
     if (x.atmax) ok(row.text.includes('ขนาดสูงสุด'), `${w} ${c} shows ขนาดสูงสุด`);
   }
   ok(got.note === api.buildStartNote(plan, '2026-11-08'), `${w} note text`);
-  ok(got.line === api.buildStartLine(plan, '2026-11-08'), `${w} nurse text`);
+  ok(got.line === api.buildStartShort(plan, '2026-11-08'), `${w} short note text`);
   nStart++;
 }
 
@@ -153,7 +153,7 @@ for (const [a, b, ph] of adjCases) {
   }
   ok(got.rows.length === api.PHASE_DRUGS[ph].length, `${a}->${b} rows only phase drugs`);
   ok(got.note === api.buildAdjustNote(adj, ph, np, '2026-12-08'), `${a}->${b} ${ph} note`);
-  ok(got.line === api.buildAdjustLine(adj, ph, np), `${a}->${b} ${ph} nurse text`);
+  ok(got.line === api.buildAdjustShort(adj, ph, np), `${a}->${b} ${ph} short note text`);
   nAdj++;
 }
 // ขนาดที่กินอยู่จริงต่างจากตาราง: 52 -> 53 ระยะต่อเนื่อง แต่กิน R 450 อยู่

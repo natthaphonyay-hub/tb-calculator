@@ -179,9 +179,16 @@ test('9.4 Pharmacist note start, 52.0 kg from 8 Nov 2569', () => {
   const p = NOTES.start_note;
   eq(api.buildStartNote(api.planFrom(reg(p.weight, p.age), null), p.start), p.text);
 });
-test('9.5 nurse message start', () => {
-  const p = NOTES.start_line;
-  eq(api.buildStartLine(api.planFrom(reg(p.weight, p.age), null), p.start), p.text);
+test('9.5 short Pharmacist note start (full drug names, strength, tablets, total)', () => {
+  const p = NOTES.start_short;
+  eq(api.buildStartShort(api.planFrom(reg(p.weight, p.age), null), p.start), p.text);
+});
+test('8.2 short note never uses drug abbreviations and marks pharmacist edits', () => {
+  const r = reg('80.5');
+  const t = api.buildStartShort(api.planFrom(r, { E: { 400: 2, 500: 1 } }), '2026-11-08');
+  assert.ok(!/\bINH\b|\bPZA\b/.test(t), t);
+  assert.ok(t.includes('        - Ethambutol 400 mg 2 tab + 500 mg 1 tab (1,300 mg) (เภสัชปรับจากตาราง)'), t);
+  checks += 2;
 });
 for (const k of ['adjust_note_change', 'adjust_note_same']) {
   test(`9.6/9.7 Pharmacist note ${k}`, () => {
@@ -190,22 +197,24 @@ for (const k of ['adjust_note_change', 'adjust_note_same']) {
     eq(api.buildAdjustNote(adj, p.phase, api.planFrom(adj.to, null), p.when), p.text);
   });
 }
-test('9.8 nurse message adjust', () => {
-  const p = NOTES.adjust_line_change;
-  const adj = api.adjust(p.age, p.old, p.new, p.phase, null);
-  eq(api.buildAdjustLine(adj, p.phase, api.planFrom(adj.to, null)), p.text);
-});
+for (const k of ['adjust_short_change', 'adjust_short_same']) {
+  test(`9.8/9.9 short Pharmacist note ${k}`, () => {
+    const p = NOTES[k];
+    const adj = api.adjust(p.age, p.old, p.new, p.phase, null);
+    eq(api.buildAdjustShort(adj, p.phase, api.planFrom(adj.to, null)), p.text);
+  });
+}
 test('8.1 every note for every weight 20.0 to 200.0 is ASCII + Thai only, no undefined/NaN', () => {
   let n = 0;
   for (let w10 = 200; w10 <= 2000; w10++) {
     const w = `${Math.floor(w10 / 10)}.${w10 % 10}`;
     const plan = api.planFrom(reg(w), null);
-    for (const t of [api.buildStartNote(plan, '2026-11-08'), api.buildStartLine(plan, '2026-11-08')]) {
+    for (const t of [api.buildStartNote(plan, '2026-11-08'), api.buildStartShort(plan, '2026-11-08')]) {
       assert.ok(SAFE.test(t) && !/undefined|NaN|Infinity|null/.test(t), `${w}: ${t}`); n++;
     }
     const adj = api.adjust(45, '52.0', w, 'intensive', null);
     const np = api.planFrom(adj.to, null);
-    for (const t of [api.buildAdjustNote(adj, 'intensive', np, '2026-12-08'), api.buildAdjustLine(adj, 'intensive', np)]) {
+    for (const t of [api.buildAdjustNote(adj, 'intensive', np, '2026-12-08'), api.buildAdjustShort(adj, 'intensive', np)]) {
       assert.ok(SAFE.test(t) && !/undefined|NaN|Infinity|null/.test(t), `${w}: ${t}`); n++;
     }
   }

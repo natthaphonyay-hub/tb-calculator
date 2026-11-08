@@ -15,7 +15,7 @@ export function loadEngine() {
     return html.slice(i, j);
   };
   return new Function(`${block('// DATA-START', '// DATA-END')}\n${block('// CALC-START', '// CALC-END')}
-return { regimen, adjust, dates, planFrom, editFlag, buildStartNote, buildStartLine, buildAdjustNote, buildAdjustLine,
+return { regimen, adjust, dates, planFrom, editFlag, buildStartNote, buildStartShort, buildAdjustNote, buildAdjustShort,
   parseWeight, parseAge, mgkg10, fmt10, num, tabsText, tabsMap, tabsFromCounts, chooseCalc, rowOf, monthEnd, addMonths, parseISO,
   thDate, thShort, DRUGS, ROWS, ORDER, PHASE_DRUGS, COMBOS, EDIT_MARK };`)();
 }
@@ -43,12 +43,12 @@ export function runScenario(api, p) {
     const reg = api.regimen(p.age, p.weight);
     if (!reg.ok) return { ok: false, reason: reg.reason };
     const plan = api.planFrom(reg, p.edits || null);
-    const texts = [api.buildStartNote(plan, p.start), api.buildStartLine(plan, p.start)];
+    const texts = [api.buildStartNote(plan, p.start), api.buildStartShort(plan, p.start)];
     if (p.old) {
       const adj = api.adjust(p.age, p.old, p.weight, p.phase, p.current || null);
       if (!adj.ok) return { ok: false, reason: adj.reason };
       const np = api.planFrom(adj.to, p.edits || null);
-      texts.push(api.buildAdjustNote(adj, p.phase, np, p.start), api.buildAdjustLine(adj, p.phase, np));
+      texts.push(api.buildAdjustNote(adj, p.phase, np, p.start), api.buildAdjustShort(adj, p.phase, np));
     }
     return { ok: true, safe: texts.every(t => SAFE.test(t)), bad: texts.some(t => BAD.test(t)), n: texts.length };
   }

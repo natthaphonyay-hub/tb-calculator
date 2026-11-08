@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TB Calculator</title>
-<meta name="description" content="คำนวณขนาดยาวัณโรคสูตร 2HRZE/4HR ตามน้ำหนัก เริ่มยาใหม่และปรับยาตามน้ำหนัก พร้อม Pharmacist note">
+<meta name="description" content="คำนวณขนาดยาวัณโรคสูตร 2HRZE/4HR ตามน้ำหนัก เริ่มยาใหม่และปรับยาตามน้ำหนัก พร้อม Pharmacist note ฉบับเต็มและแบบย่อ">
 <meta name="author" content="DoseLogic">
 <meta name="theme-color" content="#7a4a2a">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='9' width='28' height='14' rx='7' fill='%237a4a2a'/%3E%3Crect x='16' y='9' width='14' height='14' rx='7' fill='%23fbfcfa' stroke='%237a4a2a' stroke-width='2'/%3E%3C/svg%3E">
@@ -239,9 +239,9 @@
         <div class="card-body">
           <pre class="note" id="sNote"></pre>
           <div class="btn-row"><button type="button" class="btn solid" id="sCopyNote" data-copy="sNote">คัดลอก Pharmacist note</button></div>
-          <h2>ข้อความตอบพยาบาล</h2>
+          <h2>Pharmacist note แบบย่อ</h2>
           <pre class="note" id="sLine"></pre>
-          <div class="btn-row"><button type="button" class="btn" id="sCopyLine" data-copy="sLine">คัดลอกข้อความตอบพยาบาล</button></div>
+          <div class="btn-row"><button type="button" class="btn" id="sCopyLine" data-copy="sLine">คัดลอก Pharmacist note แบบย่อ</button></div>
           <p class="note-hint">ห้ามกรอกชื่อหรือ HN ผู้ป่วยในเครื่องมือนี้</p>
         </div>
       </div>
@@ -312,9 +312,9 @@
         <div class="card-body">
           <pre class="note" id="aNote"></pre>
           <div class="btn-row"><button type="button" class="btn solid" id="aCopyNote" data-copy="aNote">คัดลอก Pharmacist note</button></div>
-          <h2>ข้อความตอบพยาบาล</h2>
+          <h2>Pharmacist note แบบย่อ</h2>
           <pre class="note" id="aLine"></pre>
-          <div class="btn-row"><button type="button" class="btn" id="aCopyLine" data-copy="aLine">คัดลอกข้อความตอบพยาบาล</button></div>
+          <div class="btn-row"><button type="button" class="btn" id="aCopyLine" data-copy="aLine">คัดลอก Pharmacist note แบบย่อ</button></div>
           <p class="note-hint">ห้ามกรอกชื่อหรือ HN ผู้ป่วยในเครื่องมือนี้</p>
         </div>
       </div>
@@ -572,13 +572,17 @@ function buildStartNote(plan, startISO) {
     '    - ' + REF_LINE);
   return L.join('\n');
 }
-function buildStartLine(plan, startISO) {
+// Pharmacist note แบบย่อ แทนข้อความตอบพยาบาล (พี่สั่ง 2026-11-08): ชื่อยาเต็ม ขนาดเม็ด จำนวนเม็ด (ขนาดรวม) [สเปก 8.2]
+function shortDrug(c, x) { return `${DRUGS[c].name} ${tabsText(c, x.tabs, 'en')} (${num(x.dose)} mg)${x.edited ? EDIT_MARK : ''}`; }
+function buildStartShort(plan, startISO) {
   const D = dates(startISO);
-  const L = [`เริ่มยาวัณโรค 2HRZE/4HR น้ำหนัก ${fmtW(plan.w10)} กก.`,
-    `2 เดือนแรก (${thShort(D._s)} ถึง ${thShort(D._e2)}) กินวันละครั้ง`];
-  for (const c of PHASE_DRUGS.intensive) L.push(`- ${DRUGS[c].short} ${tabsText(c, plan.doses[c].tabs, 'th')}`);
-  const cont = PHASE_DRUGS.continuation.map(c => `${DRUGS[c].short} ${tabsText(c, plan.doses[c].tabs, 'th')}`).join(' กับ ');
-  L.push(`4 เดือนต่อมา (${thShort(D._c1)} ถึง ${thShort(D._e6)}) เหลือ ${cont}`, 'นัดตรวจเสมหะ สิ้นเดือนที่ 2, 5 และ 6');
+  const L = ['Pharmacist note',
+    `    - เริ่มยาวัณโรค 2HRZE/4HR น้ำหนัก ${fmtW(plan.w10)} kg รับประทานวันละครั้ง`,
+    `    - ระยะเข้มข้น 2 เดือน ${thShort(D._s)} ถึง ${thShort(D._e2)}`];
+  for (const c of PHASE_DRUGS.intensive) L.push(`        - ${shortDrug(c, plan.doses[c])}`);
+  L.push(`    - ระยะต่อเนื่อง 4 เดือน ${thShort(D._c1)} ถึง ${thShort(D._e6)}`);
+  for (const c of PHASE_DRUGS.continuation) L.push(`        - ${shortDrug(c, plan.doses[c])}`);
+  L.push('    - นัดตรวจเสมหะ สิ้นเดือนที่ 2, 5 และ 6');
   return L.join('\n');
 }
 function whereText(method) { const row = ROWS.find(r => r.key === method); return row ? `แถว ${row.label}` : 'คำนวณตามน้ำหนัก'; }
@@ -605,14 +609,17 @@ function buildAdjustNote(adj, phase, newPlan, whenISO) {
   L.push('    - ' + REF_LINE);
   return L.join('\n');
 }
-function buildAdjustLine(adj, phase, newPlan) {
+function buildAdjustShort(adj, phase, newPlan) {
   const codes = PHASE_DRUGS[phase];
-  const changed = codes.filter(c => adj.old[c] !== newPlan.doses[c].dose), same = codes.filter(c => !changed.includes(c));
-  const w = `น้ำหนัก ${fmtW(adj.from.w10)} เป็น ${fmtW(adj.to.w10)} กก. ${PHASE_TH[phase]}`;
-  if (!changed.length) return `${w} ไม่ต้องปรับยา กินขนาดเดิม`;
-  const L = [`${w} ปรับยา`];
-  for (const c of changed) L.push(`- ${DRUGS[c].short} เปลี่ยนเป็น ${num(newPlan.doses[c].dose)} มก. = ${tabsText(c, newPlan.doses[c].tabs, 'th')} (เดิม ${num(adj.old[c])} มก.)`);
-  for (const c of same) L.push(`- ${DRUGS[c].short} คงเดิม ${num(newPlan.doses[c].dose)} มก. = ${tabsText(c, newPlan.doses[c].tabs, 'th')}`);
+  const changed = codes.filter(c => adj.old[c] !== newPlan.doses[c].dose);
+  const w = `${fmtW(adj.from.w10)} เป็น ${fmtW(adj.to.w10)} kg ${PHASE_TH[phase]}`;
+  const head = changed.length ? `ปรับยาวัณโรคตามน้ำหนัก ${w}` : `น้ำหนัก ${w} ไม่ต้องปรับยา`;
+  const L = ['Pharmacist note', `    - ${head} รับประทานวันละครั้ง`];
+  for (const c of codes) {
+    const tail = changed.includes(c) ? ` เดิม ${num(adj.old[c])} mg` : (changed.length ? ' คงเดิม' : '');
+    const x = newPlan.doses[c];
+    L.push(`        - ${DRUGS[c].name} ${tabsText(c, x.tabs, 'en')} (${num(x.dose)} mg)${tail}${x.edited ? EDIT_MARK : ''}`);
+  }
   return L.join('\n');
 }
 // CALC-END
@@ -733,7 +740,7 @@ function renderStart() {
   const prev = new Set([...document.querySelectorAll('#sBase input:checked')].map(i => i.value));
   $('#sBase').innerHTML = base.map(([n, why]) => `<label class="check"><input type="checkbox" value="${n}" ${prev.has(n) ? 'checked' : ''}><span>${n}<span class="why">${why}</span></span></label>`).join('');
   $('#sNote').textContent = buildStartNote(plan, start);
-  $('#sLine').textContent = buildStartLine(plan, start);
+  $('#sLine').textContent = buildStartShort(plan, start);
   $('#sResult').hidden = false;
 }
 
@@ -773,7 +780,7 @@ function renderAdjust() {
     return row.replace('<div class="drug-sub">', `<div class="drug-sub">${tag}`);
   }).join('');
   $('#aNote').textContent = buildAdjustNote(adj, phase, newPlan, when);
-  $('#aLine').textContent = buildAdjustLine(adj, phase, newPlan);
+  $('#aLine').textContent = buildAdjustShort(adj, phase, newPlan);
   $('#aResult').hidden = false;
 }
 
