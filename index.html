@@ -4,10 +4,334 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TB Calculator</title>
-<meta name="description" content="คำนวณขนาดยาวัณโรคสูตร 2HRZE/4HR ตามน้ำหนัก เริ่มยาใหม่และปรับยา พร้อม Pharmacist note">
+<meta name="description" content="คำนวณขนาดยาวัณโรคสูตร 2HRZE/4HR ตามน้ำหนัก เริ่มยาใหม่และปรับยาตามน้ำหนัก พร้อม Pharmacist note">
+<meta name="author" content="DoseLogic">
+<meta name="theme-color" content="#7a4a2a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='9' width='28' height='14' rx='7' fill='%237a4a2a'/%3E%3Crect x='16' y='9' width='14' height='14' rx='7' fill='%23fbfcfa' stroke='%237a4a2a' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* ธีมฉลากยา DoseLogic (สเปก DoseLogic-หน้าแรก/00-ธีมฉลากยา-DoseLogic.md) สีประจำ TB #7a4a2a (พี่เลือก 2026-11-08) */
+  :root {
+    --ink: #1d2420; --ink-2: #4d5a52; --rule: #9aa79e; --paper: #eef1ee; --label: #fbfcfa; --line: #c9d1cb;
+    --tool: #7a4a2a; --tool-soft: #f3ece6; --tool-ring: rgba(122, 74, 42, 0.22);
+    --warn: #b45309; --warn-bg: #fff7ed; --warn-ink: #7c2d12;
+    --red: #dc2626; --red-line: #b91c1c; --yellow: #facc15; --yellow-line: #ca8a04; --yellow-ink: #422006; --blue: #0369a1; --blue-line: #075985;
+    --sans: 'Sarabun', 'Thonburi', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', 'Sarabun', ui-monospace, Menlo, monospace;
+    --fs-cap: 13px; --fs-sm: 14px; --fs-body: 15px; --fs-field: 16px; --fs-card: 17px; --fs-page: 20px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { font-family: var(--sans); background: var(--paper); color: var(--ink); font-size: var(--fs-body); line-height: 1.55; overflow-x: hidden; }
+  [hidden] { display: none !important; }
+  button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  button:focus-visible, input:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid var(--tool); outline-offset: 2px; }
+  a { color: var(--tool); text-underline-offset: 3px; }
+  ::selection { background: var(--tool-ring); }
+  input { caret-color: var(--tool); }
+  .num, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  /* header: แถบสีเครื่องมือแถบเดียว */
+  .header { background: var(--tool); color: #fff; border-bottom: 2px solid var(--ink); padding: 12px 16px; }
+  .header-inner { max-width: 860px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+  .header-icon { width: 44px; height: 44px; flex: none; border-radius: 3px; background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.28); display: grid; place-items: center; }
+  .header-icon svg { width: 26px; height: 26px; }
+  .header h1 { font-size: var(--fs-page); font-weight: 800; line-height: 1.25; }
+  .header p { font-size: var(--fs-cap); opacity: 0.92; }
+
+  main { max-width: 860px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+  main > section, #sResult, #aResult { display: flex; flex-direction: column; gap: 16px; }
+
+  /* tabs */
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; border: 1.5px solid var(--ink); border-radius: 4px; overflow: hidden; background: var(--label); }
+  .tabs button { min-height: 48px; border: 0; background: transparent; font-weight: 600; font-size: var(--fs-body); padding: 8px 10px; }
+  .tabs button + button { border-left: 1.5px solid var(--ink); }
+  .tabs button[aria-selected="true"] { background: var(--ink); color: var(--label); }
+
+  /* cards: กรอบฉลาก */
+  .card { background: var(--label); border: 1.5px solid var(--ink); border-radius: 4px; overflow: hidden; }
+  .band { background: var(--tool); color: #fff; font: 700 12px var(--mono); letter-spacing: 0.08em; padding: 6px 12px; display: flex; justify-content: space-between; gap: 8px; text-transform: uppercase; }
+  .card-body { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+  .card h2 { font-size: var(--fs-card); font-weight: 800; line-height: 1.35; }
+  .muted { color: var(--ink-2); font-size: var(--fs-sm); }
+  .small { font-size: var(--fs-cap); color: var(--ink-2); }
+
+  /* fields */
+  .fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .fields.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .field label, .field .label { font-size: var(--fs-sm); font-weight: 600; color: var(--ink-2); }
+  .field input { width: 100%; min-height: 44px; font-size: var(--fs-field); font-family: var(--sans); border: 1.5px solid var(--rule); border-radius: 3px; background: #fff; padding: 8px 10px; color: var(--ink); }
+  .field input:focus, .field input:focus-within { border-color: var(--ink); box-shadow: 0 0 0 3px var(--tool-ring); outline: none; }
+  .field .hint { font-size: var(--fs-cap); color: var(--ink-2); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .seg button { min-height: 44px; border: 1.5px solid var(--rule); border-radius: 3px; background: #fff; font-size: var(--fs-sm); font-weight: 600; padding: 6px; }
+  .seg button[aria-pressed="true"] { border-color: var(--ink); }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--label); }
+  .msg { border: 2px solid var(--warn); background: var(--warn-bg); color: var(--warn-ink); border-radius: 4px; font-size: var(--fs-body); }
+  .msg .lab { background: var(--warn); color: #fff; font-weight: 600; font-size: var(--fs-cap); padding: 3px 10px; }
+  .msg p { padding: 8px 10px; }
+  .empty { border: 1.5px dashed var(--rule); border-radius: 4px; padding: 14px; color: var(--ink-2); text-align: center; background: var(--paper); }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { min-height: 44px; border-radius: 3px; padding: 8px 14px; font-weight: 600; font-size: var(--fs-sm); border: 1.5px solid var(--ink); background: transparent; }
+  .btn:hover { background: #e3e8e4; }
+  .btn.solid { background: var(--ink); color: var(--label); }
+  .btn.solid:hover { background: #2d3631; }
+  .btn.done { background: var(--tool); border-color: var(--tool); color: #fff; }
+  .linkbtn { min-height: 40px; border: 0; background: none; color: var(--tool); font-weight: 600; font-size: var(--fs-sm); text-decoration: underline; text-underline-offset: 3px; padding: 4px 2px; }
+
+  /* drug rows */
+  .basis { font-size: var(--fs-sm); color: var(--ink-2); }
+  .drugs { display: flex; flex-direction: column; }
+  .drug { padding: 10px 0; border-top: 1px dashed var(--rule); display: flex; flex-direction: column; gap: 6px; }
+  .drug:first-child { border-top: 0; padding-top: 0; }
+  .drug-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .drug-name { font-weight: 800; font-size: var(--fs-body); }
+  .drug-name .code { display: inline-block; min-width: 1.6em; font-family: var(--mono); color: var(--tool); }
+  .drug-dose { font-family: var(--mono); font-weight: 700; font-size: 22px; white-space: nowrap; }
+  .drug-dose small { font-family: var(--sans); font-weight: 600; font-size: var(--fs-sm); }
+  .drug-sub { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--fs-body); }
+  .drug-sub .mgkg { color: var(--ink-2); }
+  .tag { font-size: var(--fs-cap); font-weight: 600; border: 1px solid var(--line); border-radius: 3px; padding: 1px 6px; color: var(--ink-2); background: var(--paper); }
+  .tag.edited { border-color: var(--tool); color: var(--tool); background: var(--tool-soft); }
+  .flag { border-radius: 4px; padding: 7px 10px; font-size: var(--fs-body); display: flex; flex-direction: column; gap: 4px; }
+  .flag.red { background: var(--red); border: 2px solid var(--red-line); color: #fff; }
+  .flag.yellow { background: var(--yellow); border: 2px solid var(--yellow-line); color: var(--yellow-ink); }
+  .flag.blue { background: var(--blue); border: 2px solid var(--blue-line); color: #fff; }
+  .flag .flag-act { display: flex; flex-wrap: wrap; gap: 6px; }
+  .flag button { min-height: 40px; border-radius: 3px; border: 1.5px solid currentColor; background: rgba(255, 255, 255, 0.16); padding: 4px 10px; font-weight: 600; font-size: var(--fs-sm); }
+  .flag.yellow button { background: rgba(255, 255, 255, 0.45); }
+  .editor { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; background: var(--paper); border: 1px solid var(--line); border-radius: 3px; padding: 8px; }
+  .stepper { display: flex; align-items: center; gap: 6px; }
+  .stepper .s-lab { font-size: var(--fs-sm); font-weight: 600; min-width: 4.4em; }
+  .stepper button { width: 40px; height: 40px; border: 1.5px solid var(--ink); border-radius: 3px; background: var(--label); font-weight: 800; font-size: 18px; line-height: 1; }
+  .stepper button:disabled { opacity: 0.35; cursor: default; }
+  .stepper output { min-width: 1.6em; text-align: center; font-family: var(--mono); font-weight: 700; font-size: 18px; }
+
+  /* phase dates and follow-up */
+  .phase { display: flex; flex-direction: column; }
+  .phase .kv { display: flex; flex-wrap: wrap; gap: 2px 12px; padding: 8px 0; border-top: 1px dashed var(--rule); }
+  .phase .kv:first-child { border-top: 0; padding-top: 0; }
+  .phase b { flex: 0 0 13.5em; max-width: 100%; font-size: var(--fs-sm); color: var(--ink-2); font-weight: 600; }
+  .follow { width: 100%; border-collapse: collapse; font-size: var(--fs-body); }
+  .follow th { text-align: left; font-size: var(--fs-cap); color: var(--ink-2); border-bottom: 1.5px solid var(--ink); padding: 4px 6px; }
+  .follow td { border-bottom: 1px dashed var(--rule); padding: 7px 6px; vertical-align: top; }
+  .follow td:first-child { white-space: nowrap; font-weight: 600; }
+  .follow .d { display: block; font-size: var(--fs-cap); color: var(--ink-2); font-weight: 400; }
+  .checks { display: flex; flex-direction: column; gap: 2px; }
+  .check { display: flex; gap: 10px; align-items: flex-start; min-height: 40px; padding: 8px 0; border-top: 1px dashed var(--rule); }
+  .check:first-child { border-top: 0; }
+  .check input { width: 20px; height: 20px; margin-top: 2px; flex: none; accent-color: var(--ink); }
+  .check .why { display: block; font-size: var(--fs-cap); color: var(--ink-2); }
+  .check .risk { color: var(--warn-ink); font-weight: 600; }
+
+  /* adjust result */
+  .verdict { margin: -12px -12px 0; padding: 12px; display: flex; flex-direction: column; gap: 2px; border-bottom: 2px solid var(--ink); }
+  .verdict.change { background: var(--tool); color: #fff; }
+  .verdict.same { background: var(--paper); }
+  .verdict strong { font-size: 24px; font-weight: 800; line-height: 1.2; }
+  .cmp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 12px; font-size: var(--fs-body); }
+  .cmp .h { font-size: var(--fs-cap); color: var(--ink-2); font-weight: 600; }
+  .chg { font-size: var(--fs-cap); font-weight: 600; border-radius: 3px; padding: 1px 6px; }
+  .chg.yes { background: var(--tool); color: #fff; }
+  .chg.no { background: var(--paper); color: var(--ink-2); border: 1px solid var(--line); }
+  details.current { border-bottom: 1px dashed var(--rule); }
+  details.current summary { min-height: 44px; padding: 10px 0; font-weight: 600; font-size: var(--fs-sm); cursor: pointer; }
+  details.current .inner { padding: 0 0 12px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* note */
+  .note { background: #fff; border: 1px solid var(--line); border-radius: 3px; padding: 10px; font-family: var(--mono); font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .note-hint { font-size: var(--fs-cap); color: var(--ink-2); }
+
+  /* footer */
+  .footer { background: var(--ink); color: #e9ece9; margin-top: 8px; padding: 18px 16px 40px; }
+  .footer-inner { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+  .footer-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+  .footer h3 { font-size: 17px; font-weight: 800; }
+  .footer .fsub { font-size: var(--fs-cap); opacity: 0.8; }
+  .footer .credit { text-align: right; font-size: var(--fs-cap); }
+  .footer .org { font-family: var(--mono); font-weight: 700; font-size: 15px; }
+  .footer .legal { font-size: var(--fs-cap); opacity: 0.85; border-top: 1px solid rgba(255, 255, 255, 0.18); padding-top: 10px; }
+
+  @media (max-width: 640px) {
+    .fields, .fields.two { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
 </head>
 <body>
-<p>TB Calculator อยู่ระหว่างทำหน้าจอ (ชุด ค) ตอนนี้มีแต่ตัวคำนวณ</p>
+<header class="header">
+  <div class="header-inner">
+    <div class="header-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="7.5" width="19" height="9" rx="4.5"/><path d="M12 7.5v9"/></svg>
+    </div>
+    <div>
+      <h1>TB Calculator</h1>
+      <p>คำนวณขนาดยาวัณโรค สูตร 2HRZE/4HR ตามน้ำหนัก สำหรับเภสัชกร</p>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="tabs" role="tablist" aria-label="เลือกงาน">
+    <button type="button" role="tab" id="tabStart" aria-controls="pageStart" aria-selected="true">เริ่มยาใหม่</button>
+    <button type="button" role="tab" id="tabAdjust" aria-controls="pageAdjust" aria-selected="false">ปรับยาตามน้ำหนัก</button>
+  </div>
+
+  <!-- ===================== หน้าเริ่มยาใหม่ ===================== -->
+  <section id="pageStart" role="tabpanel" aria-labelledby="tabStart">
+    <div class="card">
+      <div class="band"><span>Patient</span><span>Adult</span></div>
+      <div class="card-body">
+        <h2>ข้อมูลผู้ป่วย</h2>
+        <div class="fields">
+          <div class="field">
+            <label for="sAge">อายุ (ปี)</label>
+            <input id="sAge" type="number" inputmode="numeric" min="0" step="1" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="sWeight">น้ำหนักก่อนเริ่มรักษา (กก.)</label>
+            <input id="sWeight" type="number" inputmode="decimal" min="0" step="0.1" autocomplete="off">
+            <span class="hint">ผู้ป่วยตั้งครรภ์ ใช้น้ำหนักก่อนตั้งครรภ์ (แนวทาง 2564 หน้า 69)</span>
+          </div>
+          <div class="field">
+            <label for="sDate">วันเริ่มยา</label>
+            <input id="sDate" type="date">
+          </div>
+        </div>
+        <div class="btn-row"><button type="button" class="linkbtn" id="sExample">ลองตัวอย่าง 45 ปี 52.0 กก.</button></div>
+      </div>
+    </div>
+
+    <div id="sMsg" class="msg" role="alert" hidden><div class="lab">ยังคำนวณไม่ได้</div><p></p></div>
+    <div id="sEmpty" class="empty">กรอกอายุและน้ำหนัก แล้วจอจะคิดขนาดยาให้</div>
+
+    <div id="sResult" hidden>
+      <div class="card">
+        <div class="band"><span>2HRZE/4HR</span><span>Oral once daily</span></div>
+        <div class="card-body">
+          <div>
+            <h2>ขนาดยา ระยะเข้มข้น 2 เดือน (HRZE)</h2>
+            <p class="basis" id="sBasis"></p>
+          </div>
+          <div class="drugs" id="sDrugs"></div>
+          <p class="small">ระยะต่อเนื่อง 4 เดือน ใช้ H กับ R ขนาดเดียวกัน<br>ขนาดตามตารางไม่ขึ้นเตือน แม้ มก./กก. จะหลุดช่วงบางตัว ป้ายเตือนขึ้นเมื่อเภสัชแก้หรือคำนวณตามน้ำหนัก</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="band"><span>Schedule</span><span>Calendar months</span></div>
+        <div class="card-body">
+          <h2>ช่วงวันที่</h2>
+          <div class="phase" id="sPhase"></div>
+          <h2>นัดติดตาม</h2>
+          <table class="follow"><thead><tr><th>เมื่อไร</th><th>ตรวจ (ตาราง 5.3 หน้า 63-64)</th></tr></thead><tbody id="sFollow"></tbody></table>
+          <h2>ตรวจก่อนเริ่มยา</h2>
+          <div class="checks" id="sBase"></div>
+          <p class="small">ช่องติ๊กไว้ให้เภสัชไล่ดู ไม่ถูกใส่ใน note</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="band"><span>Pharmacist note</span><span>Copy and paste</span></div>
+        <div class="card-body">
+          <pre class="note" id="sNote"></pre>
+          <div class="btn-row"><button type="button" class="btn solid" id="sCopyNote" data-copy="sNote">คัดลอก Pharmacist note</button></div>
+          <h2>ข้อความตอบพยาบาล</h2>
+          <pre class="note" id="sLine"></pre>
+          <div class="btn-row"><button type="button" class="btn" id="sCopyLine" data-copy="sLine">คัดลอกข้อความตอบพยาบาล</button></div>
+          <p class="note-hint">ห้ามกรอกชื่อหรือ HN ผู้ป่วยในเครื่องมือนี้</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== หน้าปรับยาตามน้ำหนัก ===================== -->
+  <section id="pageAdjust" role="tabpanel" aria-labelledby="tabAdjust" hidden>
+    <div class="card">
+      <div class="band"><span>Weight change</span><span>Adult</span></div>
+      <div class="card-body">
+        <h2>น้ำหนักเดิมกับน้ำหนักใหม่</h2>
+        <div class="fields">
+          <div class="field">
+            <label for="aAge">อายุ (ปี)</label>
+            <input id="aAge" type="number" inputmode="numeric" min="0" step="1" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="aOld">น้ำหนักเดิม (กก.)</label>
+            <input id="aOld" type="number" inputmode="decimal" min="0" step="0.1" autocomplete="off">
+            <span class="hint">น้ำหนักที่ใช้คิดขนาดยาที่กินอยู่</span>
+          </div>
+          <div class="field">
+            <label for="aNew">น้ำหนักใหม่ (กก.)</label>
+            <input id="aNew" type="number" inputmode="decimal" min="0" step="0.1" autocomplete="off">
+          </div>
+        </div>
+        <div class="fields two">
+          <div class="field">
+            <span class="label" id="aPhaseLab">ระยะที่กินอยู่</span>
+            <div class="seg" role="group" aria-labelledby="aPhaseLab">
+              <button type="button" data-phase="intensive" aria-pressed="true">ระยะเข้มข้น (HRZE)</button>
+              <button type="button" data-phase="continuation" aria-pressed="false">ระยะต่อเนื่อง (HR)</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="aDate">วันที่ประเมิน</label>
+            <input id="aDate" type="date">
+          </div>
+        </div>
+        <div class="btn-row"><button type="button" class="linkbtn" id="aExample">ลองตัวอย่าง 48.0 เป็น 52.0 กก.</button></div>
+      </div>
+    </div>
+
+    <div id="aMsg" class="msg" role="alert" hidden><div class="lab">ยังคำนวณไม่ได้</div><p></p></div>
+    <div id="aEmpty" class="empty">กรอกอายุ น้ำหนักเดิม และน้ำหนักใหม่ แล้วจอจะบอกว่าต้องปรับยาไหม</div>
+
+    <div id="aResult" hidden>
+      <div class="card">
+        <div class="band"><span>Result</span><span id="aPhaseBand"></span></div>
+        <div class="card-body">
+          <div class="verdict" id="aVerdict" aria-live="polite"></div>
+          <details class="current" id="aCurrentBox">
+            <summary>ขนาดที่กินอยู่ตอนนี้ <span id="aCurrentSum" class="small"></span></summary>
+            <div class="inner">
+              <p class="small">จอใส่ขนาดตามตารางของน้ำหนักเดิมไว้ให้ ถ้าผู้ป่วยกินขนาดอื่นอยู่ แก้จำนวนเม็ดให้ตรงของจริง</p>
+              <div class="drugs" id="aCurrent"></div>
+            </div>
+          </details>
+          <h2>ขนาดใหม่ตามน้ำหนักใหม่</h2>
+          <p class="basis" id="aBasis"></p>
+          <div class="drugs" id="aNewDrugs"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="band"><span>Pharmacist note</span><span>Copy and paste</span></div>
+        <div class="card-body">
+          <pre class="note" id="aNote"></pre>
+          <div class="btn-row"><button type="button" class="btn solid" id="aCopyNote" data-copy="aNote">คัดลอก Pharmacist note</button></div>
+          <h2>ข้อความตอบพยาบาล</h2>
+          <pre class="note" id="aLine"></pre>
+          <div class="btn-row"><button type="button" class="btn" id="aCopyLine" data-copy="aLine">คัดลอกข้อความตอบพยาบาล</button></div>
+          <p class="note-hint">ห้ามกรอกชื่อหรือ HN ผู้ป่วยในเครื่องมือนี้</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div><h3>TB Calculator</h3><div class="fsub">Tuberculosis Dose Tool</div></div>
+      <div class="credit"><div>พัฒนาโดย</div><div class="org">DoseLogic</div><div>Version 1.0 | November 2026</div></div>
+    </div>
+    <div class="legal">ขนาดยาตามแนวทางการควบคุมวัณโรคประเทศไทย พ.ศ. 2564 กองวัณโรค กรมควบคุมโรค (ตาราง 5.1 หน้า 60) เครื่องมือนี้ช่วยเภสัชกรคิด ไม่ได้ตัดสินแทน ตรวจกับคำสั่งแพทย์และแนวทางของโรงพยาบาลทุกครั้ง</div>
+  </div>
+</footer>
+
 <script>
 'use strict';
 // DATA-START
@@ -292,6 +616,253 @@ function buildAdjustLine(adj, phase, newPlan) {
   return L.join('\n');
 }
 // CALC-END
+
+// UI-START
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const REASON = {
+  age: 'รอบนี้ยังไม่รองรับผู้ป่วยอายุ 15 ปีลงมา เพราะขนาดยาเด็กต่อกิโลกรัมสูงกว่าผู้ใหญ่ ดูตาราง 7.1 หน้า 100 ของแนวทาง 2564 หรือแนวทางวัณโรคเด็ก',
+  ageint: 'ใส่อายุเป็นจำนวนเต็ม (ปี)',
+  decimal: 'ใส่น้ำหนักเป็นตัวเลข ทศนิยมได้ 1 ตำแหน่ง',
+  weight: 'ตรวจตัวเลขน้ำหนักอีกครั้ง เครื่องมือรับ 20.0 ถึง 200.0 กก.',
+};
+const STATE = { start: { edits: {} }, adj: { phase: 'intensive', cur: {}, neu: {} } };
+const MAX_EDIT = 8;
+
+function ageReason(v) {
+  const s = String(v).trim();
+  if (!/^\d+$/.test(s)) return 'ageint';
+  return Number(s) >= AGE_MIN ? null : 'age';
+}
+function showMsg(id, reason) {
+  const box = $(id);
+  if (!reason) { box.hidden = true; return; }
+  box.querySelector('p').textContent = REASON[reason];
+  box.hidden = false;
+}
+function rangeText(c) { return `${DRUGS[c].lo}-${DRUGS[c].hi} มก./กก.`; }
+function capText(c) { return `${num(DRUGS[c].cap)} มก.`; }
+
+/* ---------- แถวยา 1 ตัว (ใช้ทั้ง 2 หน้า) ---------- */
+// item = ขนาดตั้งต้นจาก regimen() · shown = ขนาดที่จะใช้จริง (planFrom) · kind = 'start' | 'cur' | 'new'
+function drugRowHTML(c, item, shown, w10, kind, open) {
+  const d = DRUGS[c];
+  const edited = shown.edited;
+  const t = mgkg10(shown.dose, w10);
+  const tags = [];
+  if (edited) tags.push('<span class="tag edited">เภสัชปรับจากตาราง</span>');
+  if (d.cap != null && shown.dose === d.cap && t < d.lo * 10) tags.push('<span class="tag">ขนาดสูงสุด</span>');
+  let flag = '';
+  if (kind !== 'cur') {
+    if (edited) {
+      const f = editFlag(c, shown.dose, w10);
+      if (f === 'red') flag = flagHTML('red', `เกินขนาดสูงสุด ${capText(c)}`, '');
+      else if (f === 'yellow') flag = flagHTML('yellow', `สูงกว่าช่วง ${rangeText(c)}`, '');
+      else if (f === 'blue') flag = flagHTML('blue', `ต่ำกว่าช่วง ${rangeText(c)}`, '');
+    } else if (item.flag && item.nowhole) {
+      const alt = item.alt.map(a => `<button type="button" data-act="use" data-code="${c}" data-dose="${a}" data-kind="${kind}">ใช้ ${num(a)} มก. (${fmt10(mgkg10(a, w10))} มก./กก.)</button>`).join('');
+      flag = flagHTML(item.flag, `${item.flag === 'yellow' ? 'สูงกว่า' : 'ต่ำกว่า'}ช่วง ${rangeText(c)} เม็ดเต็มจัดให้อยู่ในช่วงไม่ได้ จอเลือกขนาดที่ใกล้เป้าที่สุดไว้ให้`, alt);
+    } else if (item.flag === 'blue' && item.suggest) {
+      const sTabs = tabsText(c, tabsMap(c, item.suggest), 'th');
+      const atCap = item.suggest === d.cap && mgkg10(item.suggest, w10) < d.lo * 10 ? ' ขนาดสูงสุด' : '';
+      flag = flagHTML('blue', `ต่ำกว่าช่วง ${rangeText(c)} หมายเหตุตาราง 5.1 ให้คำนวณตามน้ำหนักเมื่อเกิน 70 กก.`,
+        `<button type="button" data-act="use" data-code="${c}" data-dose="${item.suggest}" data-kind="${kind}">ใช้ ${num(item.suggest)} มก. = ${esc(sTabs)} (${fmt10(mgkg10(item.suggest, w10))} มก./กก.)${atCap}</button>`);
+    }
+  }
+  const editor = open ? editorHTML(c, shown.tabs, kind) : '';
+  const tools = kind === 'new' || kind === 'start' || kind === 'cur'
+    ? `<div class="btn-row">${edited ? `<button type="button" class="linkbtn" data-act="reset" data-code="${c}" data-kind="${kind}">กลับค่าตามตาราง</button>` : ''}<button type="button" class="linkbtn" data-act="toggle" data-code="${c}" data-kind="${kind}" aria-expanded="${open ? 'true' : 'false'}">${open ? 'ปิดช่องแก้' : 'แก้จำนวนเม็ด'}</button></div>` : '';
+  return `<div class="drug" data-code="${c}" data-kind="${kind}" data-dose="${shown.dose}" data-mgkg="${fmt10(t)}" data-edited="${edited ? 1 : 0}">
+    <div class="drug-head"><div class="drug-name"><span class="code">${c}</span>${d.name}</div><div class="drug-dose">${num(shown.dose)} <small>มก.</small></div></div>
+    <div class="drug-sub"><span class="tabs-text">${esc(tabsText(c, shown.tabs, 'th'))}</span><span class="mgkg">${fmt10(t)} มก./กก.</span>${tags.join('')}</div>
+    ${flag}${editor}${tools}</div>`;
+}
+function flagHTML(color, text, actions) {
+  return `<div class="flag ${color}" data-flag="${color}"><span>${esc(text)}</span>${actions ? `<div class="flag-act">${actions}</div>` : ''}</div>`;
+}
+function editorHTML(c, tabs, kind) {
+  return `<div class="editor">${DRUGS[c].strengths.map(s => {
+    const n = Number(tabs[String(s)] || 0);
+    return `<div class="stepper"><span class="s-lab">${s} มก.</span>
+      <button type="button" data-act="minus" data-code="${c}" data-s="${s}" data-kind="${kind}" aria-label="ลด ${DRUGS[c].name} ${s} มก. 1 ${DRUGS[c].th}" ${n <= 0 ? 'disabled' : ''}>-</button>
+      <output>${n}</output>
+      <button type="button" data-act="plus" data-code="${c}" data-s="${s}" data-kind="${kind}" aria-label="เพิ่ม ${DRUGS[c].name} ${s} มก. 1 ${DRUGS[c].th}" ${n >= MAX_EDIT ? 'disabled' : ''}>+</button></div>`;
+  }).join('')}</div>`;
+}
+
+/* ---------- หน้าเริ่มยาใหม่ ---------- */
+const OPEN = { start: new Set(), cur: new Set(), new: new Set() };
+let startCtx = null; // {reg, plan}
+function renderStart() {
+  const age = $('#sAge').value, w = $('#sWeight').value, start = $('#sDate').value || todayISO();
+  const filled = age !== '' && w !== '';
+  $('#sEmpty').hidden = filled;
+  if (!filled) { showMsg('#sMsg', null); $('#sResult').hidden = true; startCtx = null; return; }
+  const ar = ageReason(age);
+  const reg = ar ? { ok: false, reason: ar } : regimen(Number(age), w);
+  if (!reg.ok) { showMsg('#sMsg', reg.reason); $('#sResult').hidden = true; startCtx = null; return; }
+  showMsg('#sMsg', null);
+  const plan = planFrom(reg, STATE.start.edits);
+  startCtx = { reg, plan };
+  $('#sBasis').textContent = reg.method === 'calc'
+    ? 'คำนวณตามน้ำหนัก เพราะน้อยกว่า 35 กก. (หมายเหตุตาราง 5.1) เป้า H 5 R 10 Z 25 E 15 มก./กก.'
+    : `ตามตาราง 5.1 แถว ${ROWS.find(r => r.key === reg.method).label.replace('kg', 'กก.')} (แนวทาง 2564 หน้า 60)`;
+  $('#sDrugs').innerHTML = ORDER.map(c => drugRowHTML(c, reg.drugs[c], plan.doses[c], reg.w10, 'start', OPEN.start.has(c))).join('');
+  const D = dates(start);
+  $('#sPhase').innerHTML = `<div class="kv"><b>ระยะเข้มข้น 2 เดือน (HRZE)</b><span>${thDate(D._s)} ถึง ${thDate(D._e2)} <span class="small">(${D.days_intensive} วัน)</span></span></div>
+    <div class="kv"><b>ระยะต่อเนื่อง 4 เดือน (HR)</b><span>${thDate(D._c1)} ถึง ${thDate(D._e6)} <span class="small">(${D.days_continuation} วัน)</span></span></div>`;
+  const s = D._s, me = n => thDate(monthEnd(s, n));
+  const rows = [
+    ['ก่อนเริ่มยา', thDate(s), 'อาการ ชั่งน้ำหนัก AFB smear อณูชีววิทยา (วินิจฉัยและทดสอบความไว) พิจารณาเพาะเชื้อ ถ่ายภาพรังสีทรวงอก HIV test และตรวจตามกลุ่มเสี่ยงด้านล่าง'],
+    ['สิ้นเดือนที่ 1', me(1), 'อาการ ชั่งน้ำหนัก'],
+    ['สิ้นเดือนที่ 2', me(2), 'อาการ ชั่งน้ำหนัก AFB smear ถ่ายภาพรังสีทรวงอก ถ้า AFB บวก ส่งอณูชีววิทยา (กรณีไม่มีผลทดสอบความไวก่อนเริ่มรักษา) และเพาะเชื้อทดสอบความไว'],
+    ['สิ้นเดือนที่ 3', me(3), 'อาการ ชั่งน้ำหนัก AFB smear เฉพาะถ้าเดือนที่ 2 บวก'],
+    ['สิ้นเดือนที่ 4', me(4), 'อาการ ชั่งน้ำหนัก'],
+    ['สิ้นเดือนที่ 5', me(5), 'อาการ ชั่งน้ำหนัก AFB smear ถ้าบวก ส่งอณูชีววิทยาและเพาะเชื้อทดสอบความไว'],
+    ['สิ้นเดือนที่ 6', me(6), 'อาการ ชั่งน้ำหนัก AFB smear ถ่ายภาพรังสีทรวงอก'],
+  ];
+  $('#sFollow').innerHTML = rows.map(([a, b, t]) => `<tr><td>${a}<span class="d">${b}</span></td><td>${t}</td></tr>`).join('');
+  const old = Number(age) > 60;
+  const base = [
+    ['HIV test', 'ทุกราย', false],
+    ['LFT', `กลุ่มเสี่ยงตับอักเสบ: อายุมากกว่า 60 ปี ดื่มสุราประจำ โรคตับหรือไวรัสตับอักเสบเรื้อรัง HIV ทุพโภชนาการ ตั้งครรภ์${old ? ' <span class="risk">(ผู้ป่วยอายุมากกว่า 60 ปี)</span>' : ''}`, false],
+    ['BUN Cr', 'กลุ่มเสี่ยงไต: โรคไต เบาหวานที่ไตเสื่อม ผู้สูงอายุ ใช้ยากลุ่ม aminoglycosides', false],
+    ['ตรวจการมองเห็น', 'ผู้สูงอายุ หรือมีปัญหาสายตาเดิม (เพราะ E มีผลต่อการมองเห็น)', false],
+  ];
+  const prev = new Set([...document.querySelectorAll('#sBase input:checked')].map(i => i.value));
+  $('#sBase').innerHTML = base.map(([n, why]) => `<label class="check"><input type="checkbox" value="${n}" ${prev.has(n) ? 'checked' : ''}><span>${n}<span class="why">${why}</span></span></label>`).join('');
+  $('#sNote').textContent = buildStartNote(plan, start);
+  $('#sLine').textContent = buildStartLine(plan, start);
+  $('#sResult').hidden = false;
+}
+
+/* ---------- หน้าปรับยาตามน้ำหนัก ---------- */
+let adjCtx = null;
+function renderAdjust() {
+  const age = $('#aAge').value, ow = $('#aOld').value, nw = $('#aNew').value, when = $('#aDate').value || todayISO();
+  const phase = STATE.adj.phase, codes = PHASE_DRUGS[phase];
+  const filled = age !== '' && ow !== '' && nw !== '';
+  $('#aEmpty').hidden = filled;
+  if (!filled) { showMsg('#aMsg', null); $('#aResult').hidden = true; adjCtx = null; return; }
+  const ar = ageReason(age);
+  const oldReg = ar ? { ok: false, reason: ar } : regimen(Number(age), ow);
+  const newReg = ar ? { ok: false, reason: ar } : regimen(Number(age), nw);
+  const bad = !oldReg.ok ? oldReg : (!newReg.ok ? newReg : null);
+  if (bad) { showMsg('#aMsg', bad.reason); $('#aResult').hidden = true; adjCtx = null; return; }
+  showMsg('#aMsg', null);
+  const curPlan = planFrom(oldReg, STATE.adj.cur);
+  const current = Object.fromEntries(codes.map(c => [c, curPlan.doses[c].dose]));
+  const adj = adjust(Number(age), ow, nw, phase, current);
+  const newPlan = planFrom(adj.to, STATE.adj.neu);
+  const changed = codes.filter(c => adj.old[c] !== newPlan.doses[c].dose);
+  adjCtx = { adj, newPlan, phase, changed };
+  $('#aPhaseBand').textContent = phase === 'intensive' ? 'HRZE' : 'HR';
+  const where = reg => reg.method === 'calc' ? 'คำนวณตามน้ำหนัก' : `แถว ${ROWS.find(r => r.key === reg.method).label.replace('kg', 'กก.')}`;
+  $('#aVerdict').className = `verdict ${changed.length ? 'change' : 'same'}`;
+  $('#aVerdict').innerHTML = changed.length
+    ? `<strong>ปรับยา ${changed.length} รายการ</strong><span>${changed.map(c => `${c} ${num(adj.old[c])} เป็น ${num(newPlan.doses[c].dose)} มก.`).join(', ')}</span>`
+    : '<strong>ไม่ต้องปรับยา</strong><span>ขนาดที่ควรได้ตามน้ำหนักใหม่ เท่ากับที่กินอยู่ทุกรายการ</span>';
+  $('#aVerdict').dataset.result = changed.length ? 'adjust' : 'same';
+  $('#aCurrentSum').textContent = `(${where(oldReg)}${Object.keys(STATE.adj.cur).length ? ' แก้แล้ว' : ''})`;
+  $('#aCurrent').innerHTML = codes.map(c => drugRowHTML(c, oldReg.drugs[c], curPlan.doses[c], oldReg.w10, 'cur', OPEN.cur.has(c))).join('');
+  $('#aBasis').textContent = `น้ำหนักเดิม ${fmtW(oldReg.w10)} กก. (${where(oldReg)}) น้ำหนักใหม่ ${fmtW(newReg.w10)} กก. (${where(newReg)})`;
+  $('#aNewDrugs').innerHTML = codes.map(c => {
+    const row = drugRowHTML(c, newReg.drugs[c], newPlan.doses[c], newReg.w10, 'new', OPEN.new.has(c));
+    const tag = changed.includes(c) ? `<span class="chg yes">เปลี่ยนจาก ${num(adj.old[c])} มก.</span>` : '<span class="chg no">เท่าเดิม</span>';
+    return row.replace('<div class="drug-sub">', `<div class="drug-sub">${tag}`);
+  }).join('');
+  $('#aNote').textContent = buildAdjustNote(adj, phase, newPlan, when);
+  $('#aLine').textContent = buildAdjustLine(adj, phase, newPlan);
+  $('#aResult').hidden = false;
+}
+
+/* ---------- แก้จำนวนเม็ด ---------- */
+function editsOf(kind) { return kind === 'start' ? STATE.start.edits : kind === 'cur' ? STATE.adj.cur : STATE.adj.neu; }
+function baseTabs(kind, c) {
+  if (kind === 'start') return startCtx.plan.doses[c].tabs;
+  if (kind === 'cur') return planFrom(regimen(Number($('#aAge').value), $('#aOld').value), STATE.adj.cur).doses[c].tabs;
+  return adjCtx.newPlan.doses[c].tabs;
+}
+function rerender(kind) { if (kind === 'start') renderStart(); else renderAdjust(); }
+document.addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]');
+  if (!b) return;
+  const { act, code: c, kind } = b.dataset, E = editsOf(kind);
+  if (act === 'toggle') { OPEN[kind].has(c) ? OPEN[kind].delete(c) : OPEN[kind].add(c); rerender(kind); return; }
+  if (act === 'reset') { delete E[c]; rerender(kind); return; }
+  if (act === 'use') { E[c] = tabsMap(c, Number(b.dataset.dose)); rerender(kind); return; }
+  if (act === 'plus' || act === 'minus') {
+    const t = { ...baseTabs(kind, c) }, k = String(b.dataset.s);
+    t[k] = Math.max(0, Math.min(MAX_EDIT, (Number(t[k]) || 0) + (act === 'plus' ? 1 : -1)));
+    if (Object.values(t).every(v => !v)) return; // อย่างน้อย 1 เม็ด
+    E[c] = t;
+    rerender(kind);
+    const again = document.querySelector(`button[data-act="${act}"][data-code="${c}"][data-s="${k}"][data-kind="${kind}"]`);
+    if (again && !again.disabled) again.focus();
+  }
+});
+
+/* ---------- คัดลอก (กรอบ Google Sites ไม่ให้สิทธิ์ clipboard ต้องมีทางสำรอง) ---------- */
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* ทางสำรอง */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy'); ta.remove();
+    return ok;
+  } catch { return false; }
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button[data-copy]');
+  if (!b) return;
+  const pre = document.getElementById(b.dataset.copy);
+  const ok = await copyText(pre.textContent);
+  const label = b.dataset.label || (b.dataset.label = b.textContent);
+  if (ok) { b.classList.add('done'); b.textContent = 'คัดลอกแล้ว'; }
+  else {
+    const r = document.createRange(); r.selectNodeContents(pre);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    b.textContent = 'เลือกข้อความไว้แล้ว กด Ctrl+C หรือ Cmd+C';
+  }
+  setTimeout(() => { b.classList.remove('done'); b.textContent = label; }, 2200);
+});
+
+/* ---------- แท็บ ช่องกรอก ---------- */
+function selectTab(which) {
+  const start = which === 'start';
+  $('#tabStart').setAttribute('aria-selected', String(start));
+  $('#tabAdjust').setAttribute('aria-selected', String(!start));
+  $('#pageStart').hidden = !start; $('#pageAdjust').hidden = start;
+}
+$('#tabStart').addEventListener('click', () => selectTab('start'));
+$('#tabAdjust').addEventListener('click', () => selectTab('adjust'));
+document.querySelector('.tabs').addEventListener('keydown', e => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  const next = $('#tabStart').getAttribute('aria-selected') === 'true' ? 'adjust' : 'start';
+  selectTab(next); (next === 'start' ? $('#tabStart') : $('#tabAdjust')).focus();
+});
+for (const id of ['#sAge', '#sDate']) $(id).addEventListener('input', renderStart);
+$('#sWeight').addEventListener('input', () => { STATE.start.edits = {}; OPEN.start.clear(); renderStart(); });
+for (const id of ['#aAge', '#aDate']) $(id).addEventListener('input', renderAdjust);
+$('#aOld').addEventListener('input', () => { STATE.adj.cur = {}; OPEN.cur.clear(); renderAdjust(); });
+$('#aNew').addEventListener('input', () => { STATE.adj.neu = {}; OPEN.new.clear(); renderAdjust(); });
+document.querySelectorAll('.seg button[data-phase]').forEach(b => b.addEventListener('click', () => {
+  STATE.adj.phase = b.dataset.phase;
+  document.querySelectorAll('.seg button[data-phase]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  renderAdjust();
+}));
+$('#sExample').addEventListener('click', () => { $('#sAge').value = '45'; $('#sWeight').value = '52.0'; STATE.start.edits = {}; renderStart(); });
+$('#aExample').addEventListener('click', () => { $('#aAge').value = '45'; $('#aOld').value = '48.0'; $('#aNew').value = '52.0'; STATE.adj.cur = {}; STATE.adj.neu = {}; renderAdjust(); });
+$('#sDate').value = todayISO(); $('#aDate').value = todayISO();
+renderStart(); renderAdjust();
+// ?example=1 เปิดพร้อมตัวอย่างหน้าเริ่มยา, ?example=adjust เปิดตัวอย่างหน้าปรับยา (ใช้ทำคู่มือและตรวจหน้าตา)
+const EXAMPLE = new URLSearchParams(location.search).get('example');
+if (EXAMPLE === '1') $('#sExample').click();
+if (EXAMPLE === 'adjust') { selectTab('adjust'); $('#aExample').click(); }
+// UI-END
 </script>
 </body>
 </html>
