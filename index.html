@@ -687,7 +687,9 @@ function maxTag(c, shown, w10) {
    ส่งไม่สำเร็จก็ไม่กระทบเครื่องคำนวณ */
 const LOG_URL = 'https://script.google.com/macros/s/AKfycbyelczLFGoo5j3icdHnCxg07gW3FbS3s95XX7grzbulcAfHgzEh0SByhl44W-89bs580A/exec';
 const LOG_VER = '1.0';
-let logTimer = 0, logLastKey = '', logSnap = null, logExampleAt = 0, logUserAt = 0;
+let logExampleAt = 0, logUserAt = 0;
+// แยกรายหน้า (s เริ่มยา, a ปรับยา) สลับแท็บแล้วค่าของอีกหน้าไม่ทับกัน
+const logPend = { s: { timer: 0, last: '', snap: null }, a: { timer: 0, last: '', snap: null } };
 function logOn() {
   return !!LOG_URL && location.protocol === 'https:' && !navigator.webdriver
     && !/HeadlessChrome/.test(navigator.userAgent) && !/[?&]nolog\b/.test(location.search);
@@ -714,16 +716,21 @@ function logVisit() {
 }
 // คำนวณ 1 ครั้ง ส่งเมื่อตัวเลขนิ่ง 8 วินาที จะได้ไม่ส่งทุกครั้งที่พิมพ์
 function logQueue(snap) {
-  logSnap = snap;
-  clearTimeout(logTimer);
-  logTimer = setTimeout(() => {
-    const key = JSON.stringify(logSnap);
-    if (key === logLastKey) return;
-    logLastKey = key;
-    logSend('tb', Object.assign({ event: 'คำนวณ', example: logExampleAt > logUserAt }, logSnap));
+  const q = logPend[snap.page === 'เริ่มยา' ? 's' : 'a'];
+  q.snap = snap;
+  clearTimeout(q.timer);
+  q.timer = setTimeout(() => {
+    const key = JSON.stringify(q.snap);
+    if (key === q.last) return;
+    q.last = key;
+    logSend('tb', Object.assign({ event: 'คำนวณ', example: logExampleAt > logUserAt }, q.snap));
   }, 8000);
 }
-function logCopy(what) { if (logSnap) logSend('tb', Object.assign({ event: what, example: logExampleAt > logUserAt }, logSnap)); }
+// p = 's' หรือ 'a', note = แบบที่คัดลอกจริงตอนกด (สลับแบบ note ไม่ได้คำนวณใหม่ ค่าใน snap จึงอาจเก่า)
+function logCopy(p, what, note) {
+  const snap = logPend[p].snap;
+  if (snap) logSend('tb', Object.assign({ event: what, example: logExampleAt > logUserAt }, snap, { note }));
+}
 const flagCount = list => ['red', 'yellow', 'blue'].map(f => `${f} ${list.filter(x => x === f).length}`).filter(s => !s.endsWith(' 0')).join(', ');
 
 /* ---------- หน้าเริ่มยาใหม่ ---------- */
@@ -896,7 +903,7 @@ document.addEventListener('click', async e => {
   const p = b.dataset.copyPage, st = p === 's' ? STATE.start : STATE.adj;
   const pre = $(st.note === 'full' ? `#${p}Note` : `#${p}Line`);
   const ok = await copyText(pre.textContent);
-  logCopy(st.note === 'full' ? 'คัดลอก note ฉบับเต็ม' : 'คัดลอก note แบบย่อ');
+  logCopy(p, st.note === 'full' ? 'คัดลอก note ฉบับเต็ม' : 'คัดลอก note แบบย่อ', st.note);
   const label = b.dataset.label || (b.dataset.label = b.textContent);
   if (ok) { b.classList.add('done'); b.textContent = st.note === 'full' ? 'คัดลอกฉบับเต็มแล้ว' : 'คัดลอกแบบย่อแล้ว'; }
   else {
