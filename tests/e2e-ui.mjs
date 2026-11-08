@@ -10,7 +10,7 @@ import { loadEngine } from './run-engine.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
-const url = pathToFileURL(join(root, 'index.html')).href;
+const url = process.env.E2E_URL || pathToFileURL(join(root, 'index.html')).href; // E2E_URL=https://... ใช้ตรวจเว็บที่ขึ้นแล้ว
 const shots = join(root, 'tmp', 'shots'); mkdirSync(shots, { recursive: true });
 const api = loadEngine();
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
