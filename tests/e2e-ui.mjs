@@ -60,13 +60,13 @@ const H = String.raw`
   window.__t = {
     set(sel, v) { const el = document.querySelector(sel); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); },
     click(sel) { const el = document.querySelector(sel); if (!el) throw new Error('no ' + sel); el.click(); },
-    rows(box) { return [...document.querySelectorAll(box + ' .drug')].map(d => ({ code: d.dataset.code, dose: +d.dataset.dose, mgkg: d.dataset.mgkg,
+    rows(box, kind) { return [...document.querySelectorAll(box + ' .drug' + (kind ? '[data-kind="' + kind + '"]' : ''))].map(d => ({ code: d.dataset.code, dose: +d.dataset.dose, mgkg: d.dataset.mgkg,
       edited: d.dataset.edited === '1', flags: [...d.querySelectorAll('.flag')].map(f => f.dataset.flag), tabs: d.querySelector('.tabs-text').textContent,
       text: d.textContent.replace(/\s+/g, ' ').trim() })); },
     overflow() {
       const doc = document.documentElement, bad = [];
       if (doc.scrollWidth > doc.clientWidth + 1) bad.push('page ' + doc.scrollWidth + '>' + doc.clientWidth);
-      document.querySelectorAll('.drug-dose, .drug-sub, .verdict strong, input, .tabs button, .btn, .flag button, .follow td, .phase div').forEach(el => {
+      document.querySelectorAll('.ddose, .dsub, .cell, .cmp-name, .verdict strong, input, .tabs button, .btn, .flag button, .follow td, .phases .kv, .stepper').forEach(el => {
         if (el.offsetParent === null) return;
         if (el.scrollWidth > el.clientWidth + 1) bad.push((el.id || el.className || el.tagName) + ' ' + el.scrollWidth + '>' + el.clientWidth + ' ' + el.textContent.trim().slice(0, 30));
         const r = el.getBoundingClientRect(); if (r.right > doc.clientWidth + 1) bad.push('right ' + (el.className || el.tagName) + ' ' + Math.round(r.right));
@@ -113,7 +113,7 @@ for (const [age, w, key] of [['15', '52.0', 'อายุ 15 ปีลงมา'
 
 /* ---------- 3. แก้เม็ด ใช้ขนาดที่เสนอ กลับค่าตามตาราง ---------- */
 await ev(`__t.set('#sAge','45'); __t.set('#sWeight','52.0'); true`);
-await ev(`__t.click('button[data-act="toggle"][data-code="H"][data-kind="start"]'); __t.click('button[data-act="plus"][data-code="H"][data-kind="start"]'); true`);
+await ev(`__t.click('#sEditToggle'); __t.click('button[data-act="plus"][data-code="H"][data-kind="start"]'); true`);
 let g = await ev(`({ rows: __t.rows('#sDrugs'), note: document.querySelector('#sNote').textContent })`);
 let h = g.rows.find(x => x.code === 'H');
 ok(h.dose === 400 && h.edited && h.flags[0] === 'red', `H +1 tablet = 400 red ${JSON.stringify(h)}`);
@@ -134,8 +134,10 @@ ok(h.dose === 100 && h.edited && h.flags[0] === 'blue', `30 kg H other choice 10
 await ev(`__t.set('#sWeight','52.0'); true`);
 h = (await ev(`__t.rows('#sDrugs')`)).find(x => x.code === 'H');
 ok(h.dose === 300 && !h.edited, 'changing weight clears edits');
-const copy = await ev(`(async () => { const b = document.querySelector('#sCopyNote'); b.click(); await new Promise(r => setTimeout(r, 150)); return b.textContent; })()`);
-ok(/คัดลอกแล้ว|เลือกข้อความไว้แล้ว/.test(copy), `copy button feedback: ${copy}`);
+const copy = await ev(`(async () => { const b = document.querySelector('#sCopy'); b.click(); await new Promise(r => setTimeout(r, 150)); return b.textContent; })()`);
+ok(/คัดลอก.*แล้ว|เลือกข้อความแล้ว/.test(copy), `copy button feedback: ${copy}`);
+const toggled = await ev(`(() => { document.querySelector('button[data-note="short"][data-page="s"]').click(); return [document.querySelector('#sNote').hidden, document.querySelector('#sLine').hidden]; })()`);
+ok(toggled[0] === true && toggled[1] === false, 'note toggle shows the short note');
 
 /* ---------- 4. หน้าปรับยา ---------- */
 await ev(`__t.click('#tabAdjust'); __t.set('#aAge','45'); __t.set('#aDate','2026-12-08'); true`);
@@ -144,7 +146,7 @@ while (adjCases.length < 120) adjCases.push([fmtW(200 + Math.floor(rnd() * 1801)
 let nAdj = 0;
 for (const [a, b, ph] of adjCases) {
   await ev(`document.querySelector('.seg button[data-phase="${ph}"]').click(); __t.set('#aOld','${a}'); __t.set('#aNew','${b}'); true`);
-  const got = await ev(`({ res: document.querySelector('#aVerdict').dataset.result, rows: __t.rows('#aNewDrugs'), cur: __t.rows('#aCurrent'), note: document.querySelector('#aNote').textContent, line: document.querySelector('#aLine').textContent })`);
+  const got = await ev(`({ res: document.querySelector('#aVerdict').dataset.result, rows: __t.rows('#aCompare .cmp-row', 'new'), cur: __t.rows('#aCompare .cmp-row', 'cur'), note: document.querySelector('#aNote').textContent, line: document.querySelector('#aLine').textContent })`);
   const adj = api.adjust(45, a, b, ph, null), np = api.planFrom(adj.to, null);
   ok(got.res === adj.result, `${a}->${b} ${ph} verdict ${got.res} vs ${adj.result}`);
   for (const c of api.PHASE_DRUGS[ph]) {
@@ -157,13 +159,13 @@ for (const [a, b, ph] of adjCases) {
   nAdj++;
 }
 // ขนาดที่กินอยู่จริงต่างจากตาราง: 52 -> 53 ระยะต่อเนื่อง แต่กิน R 450 อยู่
-await ev(`document.querySelector('.seg button[data-phase="continuation"]').click(); __t.set('#aOld','52.0'); __t.set('#aNew','53.0'); document.querySelector('#aCurrentBox').open = true; true`);
-await ev(`__t.click('button[data-act="toggle"][data-code="R"][data-kind="cur"]');
+await ev(`document.querySelector('.seg button[data-phase="continuation"]').click(); __t.set('#aOld','52.0'); __t.set('#aNew','53.0'); true`);
+await ev(`__t.click('#aEditToggle');
   __t.click('button[data-act="plus"][data-code="R"][data-s="450"][data-kind="cur"]');
   __t.click('button[data-act="minus"][data-code="R"][data-s="300"][data-kind="cur"]');
   __t.click('button[data-act="minus"][data-code="R"][data-s="300"][data-kind="cur"]'); true`);
-g = await ev(`({ res: document.querySelector('#aVerdict').dataset.result, verdict: document.querySelector('#aVerdict').textContent, cur: __t.rows('#aCurrent'), note: document.querySelector('#aNote').textContent })`);
-ok(g.cur.find(x => x.code === 'R').dose === 450 && g.res === 'adjust' && g.verdict.includes('R 450 เป็น 600'), `current R 450 -> adjust ${g.verdict}`);
+g = await ev(`({ res: document.querySelector('#aVerdict').dataset.result, verdict: document.querySelector('#aVerdict').textContent, cur: __t.rows('#aCompare .cmp-row', 'cur'), neu: __t.rows('#aCompare .cmp-row', 'new'), note: document.querySelector('#aNote').textContent })`);
+ok(g.cur.find(x => x.code === 'R').dose === 450 && g.neu.find(x => x.code === 'R').dose === 600 && g.res === 'adjust' && g.verdict.includes('Rifampicin'), `current R 450 -> adjust ${g.verdict}`);
 ok(g.note.includes('Rifampicin เดิม 450 mg เป็น 600 mg (300 mg 2 cap) oral วันละครั้ง'), 'note uses dose actually taken');
 
 /* ---------- 5. ล้นจอ + ภาพจอ ---------- */
@@ -173,11 +175,11 @@ for (const wpx of widths) {
   await load(wpx); await ev(H);
   for (const w of ['30.0', '52.0', '80.5', '100.5', '200.0']) {
     await ev(`__t.set('#sAge','61'); __t.set('#sDate','2026-12-31'); __t.set('#sWeight','${w}'); true`);
-    if (w === '80.5') await ev(`__t.click('button[data-act="toggle"][data-code="E"][data-kind="start"]'); true`);
+    if (w === '80.5') await ev(`__t.click('#sEditToggle'); true`);
     const bad = await ev('__t.overflow()');
     ok(bad.length === 0, `start ${wpx}px ${w}kg overflow: ${bad.join(' | ')}`); nLayout++;
   }
-  await ev(`__t.click('#tabAdjust'); __t.set('#aAge','45'); __t.set('#aOld','48.0'); __t.set('#aNew','100.5'); document.querySelector('#aCurrentBox').open = true; true`);
+  await ev(`__t.click('#tabAdjust'); __t.set('#aAge','45'); __t.set('#aOld','48.0'); __t.set('#aNew','100.5'); __t.click('#aEditToggle'); true`);
   const bad = await ev('__t.overflow()');
   ok(bad.length === 0, `adjust ${wpx}px overflow: ${bad.join(' | ')}`); nLayout++;
 }
