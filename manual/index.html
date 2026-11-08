@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>คู่มือการใช้ TB Calculator</title>
+<meta name="author" content="DoseLogic">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* คู่มือ TB Calculator ธีมฉลากยา DoseLogic สี TB #7a4a2a พิมพ์ A4 หน้าละ 1 section (สร้าง PDF ด้วย tests/make-manual-pdf.mjs) */
+  @page { size: A4; margin: 12mm 13mm; }
+  * { box-sizing: border-box; }
+  :root { --ink: #1d2420; --ink-2: #4d5a52; --rule: #9aa79e; --paper: #eef1ee; --line: #c9d1cb; --tool: #7a4a2a; --tool-soft: #f3ece6; }
+  body { font-family: 'Sarabun', sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.55; margin: 0; background: #fff; }
+  .page { page-break-after: always; }
+  .page:last-of-type { page-break-after: auto; }
+  .band { background: var(--tool); color: #fff; font: 700 8.5pt 'JetBrains Mono', monospace; letter-spacing: 0.08em; padding: 1.5mm 3mm; display: flex; justify-content: space-between; text-transform: uppercase; margin-bottom: 4mm; }
+  h1 { font-size: 24pt; font-weight: 800; margin: 0 0 2mm; line-height: 1.2; }
+  h2 { font-size: 15pt; font-weight: 800; margin: 0 0 4mm; padding-bottom: 1.5mm; border-bottom: 1.5px solid var(--ink); }
+  h3 { font-size: 11.5pt; font-weight: 800; margin: 0 0 1mm; }
+  p { margin: 0 0 2mm; }
+  .lead { font-size: 12pt; color: var(--ink-2); }
+  .link { font: 600 10pt 'JetBrains Mono', monospace; color: var(--tool); word-break: break-all; }
+  .row { display: grid; grid-template-columns: 62mm 1fr; gap: 6mm; align-items: start; margin-bottom: 6mm; break-inside: avoid; }
+  .row img, .grid2 img, img.inline { width: 100%; border: 1px solid var(--rule); border-radius: 2mm; display: block; }
+  img.inline { max-width: 62mm; margin: 2mm 0 1mm; }
+  .n { display: inline-flex; width: 6mm; height: 6mm; border-radius: 50%; background: var(--tool); color: #fff; font-weight: 800; font-size: 9pt; align-items: center; justify-content: center; margin-right: 1.5mm; vertical-align: 1px; }
+  ul { margin: 0 0 2mm; padding-left: 5mm; }
+  li { margin-bottom: 1mm; }
+  .tip { background: var(--tool-soft); border-left: 3px solid var(--tool); padding: 2mm 3mm; border-radius: 0 2mm 2mm 0; margin-top: 2mm; font-size: 10pt; }
+  .cap { font-size: 9.5pt; color: var(--ink-2); }
+  .features { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin: 4mm 0 5mm; }
+  .feature { border: 1.5px solid var(--ink); border-radius: 1.5mm; padding: 3mm; }
+  .feature b { color: var(--tool); font-size: 11.5pt; }
+  table { border-collapse: collapse; width: 100%; font-size: 10pt; margin: 1mm 0 3mm; }
+  td, th { border-bottom: 1px dashed var(--rule); padding: 1.6mm 2mm; vertical-align: top; text-align: left; }
+  th { border-bottom: 1.5px solid var(--ink); font-size: 9.5pt; color: var(--ink-2); }
+  .sw { display: inline-block; width: 4mm; height: 4mm; border-radius: 1mm; vertical-align: -0.6mm; margin-right: 1.5mm; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-bottom: 5mm; break-inside: avoid; }
+  .grid2 img { margin-top: 1.5mm; }
+  .warn { border: 2px solid #b45309; background: #fff7ed; color: #7c2d12; border-radius: 1.5mm; padding: 2.5mm 3.5mm; margin-top: 4mm; }
+  .foot { font-size: 8.5pt; color: var(--ink-2); margin-top: 4mm; }
+  .screen-only a { color: var(--tool); font-weight: 800; }
+  @media screen {
+    html { background: var(--paper); }
+    body { max-width: 210mm; margin: 0 auto; }
+    .page { padding: 12mm 12mm 8mm; border-bottom: 6px solid var(--paper); background: #fff; }
+    .back { position: fixed; right: 12px; bottom: 12px; background: var(--tool); color: #fff; padding: 10px 16px; border-radius: 3px; text-decoration: none; font-weight: 800; border: 2px solid var(--ink); }
+  }
+  @media screen and (max-width: 640px) {
+    .row, .features, .grid2 { grid-template-columns: 1fr; }
+    .page { padding: 16px; }
+    .row img { max-width: 360px; }
+  }
+  @media print { .back, .screen-only { display: none; } }
+</style>
+</head>
+<body>
+
+<section class="page">
+  <div class="band"><span>TB Calculator</span><span>Manual</span></div>
+  <h1>คู่มือการใช้ TB Calculator</h1>
+  <p class="lead">เครื่องมือช่วยเภสัชกรคิดขนาดยาวัณโรคสูตร 2HRZE/4HR ตามน้ำหนัก สำหรับผู้ใหญ่อายุมากกว่า 15 ปี ใช้ตอนพยาบาลมาถามเรื่องเริ่มยาหรือปรับยา แล้วคัดลอก Pharmacist note ไปวางในบันทึก</p>
+  <p class="link">https://natthaphonyay-hub.github.io/tb-calculator/</p>
+  <p class="screen-only"><a href="tb-calculator-manual.pdf">ดาวน์โหลดเป็น PDF</a></p>
+  <div class="features">
+    <div class="feature"><b>เริ่มยาใหม่</b><br>กรอกอายุ น้ำหนัก วันเริ่มยา ได้ขนาดยา 4 ตัว จำนวนเม็ด ช่วงวันที่ของแต่ละระยะ นัดติดตาม และ note</div>
+    <div class="feature"><b>ปรับยาตามน้ำหนัก</b><br>กรอกน้ำหนักเดิมกับน้ำหนักใหม่ จอบอกว่าปรับยา หรือไม่ต้องปรับยา พร้อมตารางเทียบขนาดเดิมกับใหม่คู่กัน</div>
+  </div>
+  <h2>หลักของเครื่องมือ</h2>
+  <ul>
+    <li><b>ช่วยไกด์ ไม่ตัดสินแทน</b> จอเสนอขนาดตามแนวทางก่อนเสมอ เภสัชแก้จำนวนเม็ดเองได้ทุกตัว</li>
+    <li><b>เตือนแต่ไม่ห้าม</b> ขนาดที่หลุดช่วงขึ้นป้ายสี แต่กดต่อได้</li>
+    <li><b>ตามแนวทางไทย</b> ขนาดยาตามแนวทางการควบคุมวัณโรคประเทศไทย พ.ศ. 2564 ตาราง 5.1 หน้า 60</li>
+    <li><b>ยาที่ตั้งไว้</b> เม็ดเดี่ยว Isoniazid 100 มก., Rifampicin 300 และ 450 มก., Pyrazinamide 500 มก., Ethambutol 400 และ 500 มก.</li>
+  </ul>
+  <h2>ยังไม่รองรับ</h2>
+  <p>ผู้ป่วยอายุ 15 ปีลงมา (จอไม่แสดงขนาดยา), ไตเสื่อม, ตับอักเสบจากยา, ผื่นแพ้ยา, ขาดยา, ยาตีกัน, ตั้งครรภ์, HIV, วัณโรคนอกปอด, วัณโรคดื้อยา และการยืดระยะต่อเนื่องเป็น 7 เดือน กรณีเหล่านี้ใช้แนวทาง 2564 กับดุลยพินิจของเภสัชกรและแพทย์</p>
+  <div class="warn"><b>ห้ามกรอกชื่อหรือ HN ผู้ป่วย</b> เว็บนับจำนวนการเข้าใช้และเก็บค่าที่ใช้คำนวณแบบไม่ระบุตัวตน (ไม่เก็บอายุ) เพื่อปรับปรุงเครื่องมือ</div>
+</section>
+
+<section class="page">
+  <div class="band"><span>Start 1/2</span><span>เริ่มยาใหม่</span></div>
+  <h2>เริ่มยาใหม่ใน 4 ขั้น</h2>
+  <div class="row"><img src="img/s01-start-input.png" alt="ช่องกรอกอายุ น้ำหนัก วันเริ่มยา">
+    <div><h3><span class="n">1</span>กรอกอายุ น้ำหนัก วันเริ่มยา</h3><p>ใช้น้ำหนักก่อนเริ่มรักษา ทศนิยมได้ 1 ตำแหน่ง รับ 20.0 ถึง 200.0 กก. วันเริ่มยาตั้งเป็นวันนี้ไว้ให้ แก้ได้</p><div class="tip">ผู้ป่วยตั้งครรภ์ ใช้น้ำหนักก่อนตั้งครรภ์ (แนวทาง 2564 หน้า 69)</div><p class="cap" style="margin-top:2mm">กด <b>ลองตัวอย่าง</b> เพื่อดูผลของผู้ป่วยตัวอย่างอายุ 45 ปี น้ำหนัก 52 กก.</p></div></div>
+  <div class="row"><img src="img/s02-start-dose.png" alt="ตารางขนาดยาต่อวัน">
+    <div><h3><span class="n">2</span>อ่านขนาดยาต่อวัน</h3><p>บรรทัดละตัวยา ตัวเลขใหญ่คือขนาดรวมต่อวัน ใต้ชื่อยาคือจำนวนเม็ดและ มก./กก.</p><p>บรรทัดใต้หัวข้อบอกว่าได้ขนาดจากแถวไหนของตาราง 5.1 เครื่องมือตัดแถวที่ 50 และ 70 กก. พอดี คือ 35 ถึง 49.9, 50 ถึง 69.9 และ 70 กก. ขึ้นไป น้ำหนักน้อยกว่า 35 กก. จอคำนวณตามน้ำหนัก</p><p>ระยะต่อเนื่อง 4 เดือนใช้ Isoniazid กับ Rifampicin ขนาดเดียวกับระยะเข้มข้น ช่วงวันที่ของแต่ละระยะอยู่ใต้ตาราง นับเดือนตามปฏิทิน</p></div></div>
+</section>
+
+<section class="page">
+  <div class="band"><span>Start 2/2</span><span>เริ่มยาใหม่</span></div>
+  <h2>เริ่มยาใหม่ (ต่อ)</h2>
+  <div class="row"><img src="img/s03-start-follow.png" alt="นัดติดตามและตรวจก่อนเริ่มยา">
+    <div><h3><span class="n">3</span>นัดติดตามและตรวจก่อนเริ่มยา</h3><p>กดเปิดหัวข้อนี้ใต้ตารางขนาดยา จะเห็นสิ่งที่ต้องตรวจตอนเริ่มยาและสิ้นเดือนที่ 1 ถึง 6 พร้อมวันที่ ตามตาราง 5.3 หน้า 63 ถึง 64</p><p>ใต้ตารางนัดมีช่องติ๊กรายการตรวจก่อนเริ่มยาตามกลุ่มเสี่ยง ช่องติ๊กมีไว้ไล่ดูเท่านั้น ไม่ใส่ใน note</p></div></div>
+  <div class="row"><img src="img/s04-start-note.png" alt="Pharmacist note แบบย่อ">
+    <div><h3><span class="n">4</span>คัดลอก Pharmacist note</h3><p><b>ฉบับเต็ม</b> มี มก./กก. วันที่ของแต่ละระยะ และนัดตรวจสิ้นเดือนที่ 2, 5 และ 6</p><p><b>แบบย่อ</b> มีชื่อยาเต็ม ขนาดเม็ด จำนวนเม็ด ขนาดรวม และช่วงวันที่ (ภาพนี้คือแบบย่อ)</p><p>เลือกแบบแล้วกดคัดลอก ข้อความใช้แค่อักษรอังกฤษกับไทย วางในบันทึกสหวิชาชีพแล้วไม่เพี้ยน</p></div></div>
+  <div class="row"><img src="img/s08-message-age.png" alt="ข้อความอายุ 15 ปีลงมา">
+    <div><h3>ถ้าอายุ 15 ปีลงมา</h3><p>จอไม่แสดงขนาดยา เพราะขนาดยาเด็กต่อกิโลกรัมสูงกว่าผู้ใหญ่ ดูตาราง 7.1 หน้า 100 ของแนวทาง 2564 หรือแนวทางวัณโรคเด็ก</p></div></div>
+</section>
+
+<section class="page">
+  <div class="band"><span>Warnings</span><span>ป้ายเตือนและการแก้ขนาด</span></div>
+  <h2>ป้ายเตือนและการแก้ขนาด</h2>
+  <table>
+    <tr><th style="width:18%">ป้าย</th><th>ความหมาย</th></tr>
+    <tr><td><span class="sw" style="background:#dc2626"></span>แดง</td><td>เกินขนาดสูงสุด H 300, R 600, Z 2,000, E 1,600 มก.</td></tr>
+    <tr><td><span class="sw" style="background:#facc15;border:1px solid #ca8a04"></span>เหลือง</td><td>สูงกว่าช่วง มก./กก. ของแนวทาง (H 4-6, R 8-12, Z 20-30, E 15-20)</td></tr>
+    <tr><td><span class="sw" style="background:#0369a1"></span>ฟ้า</td><td>ต่ำกว่าช่วง มก./กก. ของแนวทาง</td></tr>
+    <tr><td><span class="sw" style="background:#eef1ee;border:1px solid #c9d1cb"></span>ป้ายเล็ก</td><td>"ขนาดสูงสุด" ไม่ใช่คำเตือน บอกว่ายาเท่าขนาดสูงสุดแล้ว แม้ มก./กก. จะต่ำกว่าช่วงในคนน้ำหนักมาก</td></tr>
+  </table>
+  <p>ขนาดตามตาราง 5.1 ไม่ขึ้นเตือน แม้ มก./กก. บางตัวจะหลุดช่วง (เช่น Isoniazid 300 มก. ที่น้ำหนัก 35 กก. ได้ 8.6 มก./กก.) ยกเว้นกรณีป้ายฟ้าด้านล่าง ป้ายอื่นขึ้นเมื่อเภสัชแก้ขนาดเอง หรือเมื่อน้ำหนักน้อยกว่า 35 กก. แล้วเม็ดเต็มเข้าช่วงไม่ได้</p>
+  <div class="grid2">
+    <div><h3>ป้ายฟ้า น้ำหนัก 70 กก. ขึ้นไป</h3><p>แนวทางให้คิดตามน้ำหนักเมื่อเกิน 70 กก. ถ้า Ethambutol หรือ Pyrazinamide ตามตารางต่ำกว่าช่วง จอเสนอขนาดตามน้ำหนักเป็นปุ่ม "ใช้" กดแล้วเปลี่ยนทันที</p><img src="img/s06-flag-blue.png" alt="ป้ายฟ้า Ethambutol 80.5 กก."></div>
+    <div><h3>ป้ายเหลือง น้ำหนักน้อยกว่า 35 กก.</h3><p>จอคำนวณตามน้ำหนักเป็นเม็ดเต็ม ถ้าเม็ดเต็มเข้าช่วงไม่ได้ จอเลือกขนาดที่ใกล้เป้าที่สุด (ห่างเท่ากันเลือกขนาดสูงกว่า) และมีปุ่ม "ใช้" ของอีกทางให้กด</p><img src="img/s07-flag-yellow.png" alt="ป้ายเหลือง Isoniazid 30 กก."></div>
+  </div>
+  <div class="row"><img src="img/s05-start-edit.png" alt="แก้ขนาดด้วยปุ่ม บวก ลบ">
+    <div><h3>แก้ขนาดเอง</h3><p>กด <b>แก้ขนาด</b> จะมีปุ่ม + กับ - ใต้ยาทุกตัว ปรับได้ทีละเม็ด (เม็ดเต็มเท่านั้น) กด <b>เสร็จ</b> เพื่อปิดช่องแก้</p><p>ยาที่แก้แล้วมีป้าย <b>เภสัชปรับ</b> และใน note มีวงเล็บ "(เภสัชปรับจากตาราง)" ต่อท้าย กด <b>กลับค่าตามตาราง</b> เพื่อยกเลิก ภาพนี้แก้ Isoniazid เป็น 4 เม็ด จึงขึ้นป้ายแดง</p><div class="tip">เปลี่ยนน้ำหนักแล้ว ขนาดที่แก้ไว้จะล้างกลับเป็นค่าตามตาราง</div></div></div>
+</section>
+
+<section class="page">
+  <div class="band"><span>Weight change 1/2</span><span>ปรับยาตามน้ำหนัก</span></div>
+  <h2>ปรับยาตามน้ำหนักใน 4 ขั้น</h2>
+  <div class="row"><img src="img/a01-adjust-input.png" alt="ช่องกรอกน้ำหนักเดิม ใหม่ และระยะ">
+    <div><h3><span class="n">1</span>กรอกน้ำหนักเดิม น้ำหนักใหม่ และระยะ</h3><p>น้ำหนักเดิม คือน้ำหนักที่ใช้คิดขนาดยาที่ผู้ป่วยกินอยู่ เลือกระยะที่กินอยู่ <b>เข้มข้น (HRZE)</b> หรือ <b>ต่อเนื่อง (HR)</b> วันที่ประเมินใช้ลงใน note</p></div></div>
+  <div class="row"><img src="img/a02-adjust-result.png" alt="ผลปรับยาและตารางเทียบ">
+    <div><h3><span class="n">2</span>อ่านผลและตารางเทียบ</h3><p>แถบบนบอก <b>ปรับยา</b> กี่รายการ ตารางเทียบขนาดเดิมกับขนาดใหม่คู่กันทีละตัว ตัวที่เปลี่ยนเขียนว่า เปลี่ยน ตัวที่ไม่เปลี่ยนเขียนว่า เท่าเดิม (ภาพนี้ 48 เป็น 52 กก. ปรับ 3 รายการ)</p><p>ถ้าขนาดเท่าเดิมทุกตัว แถบขึ้นว่า <b>ไม่ต้องปรับยา</b></p><img class="inline" src="img/a03-adjust-same.png" alt="แถบไม่ต้องปรับยา"><p class="cap">ตัวอย่าง 69 เป็น 71 กก. ระยะต่อเนื่อง ข้ามแถวตารางแต่ Isoniazid กับ Rifampicin เท่าเดิม</p><div class="tip">เครื่องมือเทียบเฉพาะยาในระยะที่กินอยู่ แนวทาง 2564 ไม่ได้เขียนว่าน้ำหนักเปลี่ยนเท่าไรต้องปรับ จอเทียบขนาดตามน้ำหนักใหม่กับขนาดที่กินอยู่ แล้วให้เภสัชตัดสิน</div></div></div>
+</section>
+
+<section class="page">
+  <div class="band"><span>Weight change 2/2</span><span>ปรับยาตามน้ำหนัก</span></div>
+  <h2>ปรับยาตามน้ำหนัก (ต่อ)</h2>
+  <div class="row"><img src="img/a04-adjust-current.png" alt="แก้ขนาดที่กินอยู่จริง">
+    <div><h3><span class="n">3</span>ผู้ป่วยกินขนาดอื่นอยู่</h3><p>จอใส่ขนาดเดิมตามตารางของน้ำหนักเดิมไว้ให้ ถ้าผู้ป่วยกินขนาดที่หมอเคยปรับไว้ กด <b>แก้ขนาด</b> แล้วแก้ช่อง <b>เดิม (ที่กินอยู่)</b> ให้ตรงของจริง ผลและ note จะคิดจากขนาดที่แก้</p><p>ตัวอย่างในภาพ น้ำหนัก 52 เป็น 53 กก. ระยะต่อเนื่อง ผู้ป่วยกิน Rifampicin 450 มก. อยู่ แก้ช่องเดิมเป็น 450 มก. 1 แคปซูล ขนาดตามน้ำหนักใหม่คือ 600 มก. จอจึงขึ้นว่าปรับยา 1 รายการ</p><p>กด <b>เดิมกลับตามตาราง</b> หรือ <b>ใหม่กลับตามตาราง</b> เพื่อยกเลิกที่แก้</p></div></div>
+  <div class="row"><img src="img/a05-adjust-note.png" alt="note แบบย่อหน้าปรับยา">
+    <div><h3><span class="n">4</span>คัดลอก Pharmacist note</h3><p>แบบย่อเรียงยาทุกตัวในระยะนั้น ตัวที่เปลี่ยนต่อท้ายด้วยขนาดเดิม (เช่น "เดิม 450 mg") ตัวที่ไม่เปลี่ยนต่อท้ายว่า "คงเดิม"</p><p>ฉบับเต็มมีน้ำหนักเดิมกับใหม่ แถวตารางที่ใช้ และขนาดเดิมเป็นขนาดใหม่ของตัวที่ปรับ</p></div></div>
+</section>
+
+<section class="page">
+  <div class="band"><span>Rules</span><span>กติกาและที่มา</span></div>
+  <h2>กติกาที่เครื่องมือใช้ และที่มา</h2>
+  <table>
+    <tr><th style="width:56%">กติกา</th><th>ที่มา</th></tr>
+    <tr><td>สูตรผู้ป่วยใหม่เชื้อไวต่อยา 2HRZE/4HR</td><td>แนวทาง 2564 หน้า 59</td></tr>
+    <tr><td>35 ถึง 49.9 กก. H 300 R 450 Z 1,000 E 800 มก.<br>50 ถึง 69.9 กก. H 300 R 600 Z 1,500 E 1,000 มก.<br>70 กก. ขึ้นไป H 300 R 600 Z 2,000 E 1,200 มก.</td><td>ตาราง 5.1 หน้า 60 ตัดแถวที่ 50 และ 70 กก. พอดี (ตารางเขียน 35-49, 50-69, มากกว่า 70)</td></tr>
+    <tr><td>น้อยกว่า 35 กก. คำนวณตามน้ำหนัก เป้า H 5 R 10 Z 25 E 15 มก./กก. เลือกเม็ดเต็มที่ใกล้เป้าที่สุดในช่วง</td><td>หมายเหตุตาราง 5.1, ช่วงในหัวตาราง, E 15 จากหน้า 62</td></tr>
+    <tr><td>70 กก. ขึ้นไป ถ้า E หรือ Z ต่ำกว่าช่วง เสนอขนาดตามน้ำหนัก</td><td>หมายเหตุตาราง 5.1 (เกิน 70 กก. คำนวณตามน้ำหนัก)</td></tr>
+    <tr><td>ขนาดสูงสุด H 300 R 600 มก.</td><td>ค่าสูงสุดในตาราง 5.1</td></tr>
+    <tr><td>ขนาดสูงสุด Z 2,000 E 1,600 มก.</td><td>WHO operational handbook Module 4 DS-TB 2022 ภาคผนวก หน้า 50 (แนวทางไทยไม่ได้กำหนด)</td></tr>
+    <tr><td>นับเดือนตามปฏิทิน สิ้นเดือนที่ n = วันเริ่มยาบวก n เดือน ลบ 1 วัน</td><td>กติกาของเครื่องมือ (แนวทางไม่ได้นิยามเป็นจำนวนวัน)</td></tr>
+    <tr><td>นัดติดตามและตรวจก่อนเริ่มยา</td><td>ตาราง 5.3 หน้า 63 ถึง 64</td></tr>
+  </table>
+  <h3>ข้อแตกต่างจาก WHO 2022 ที่ควรรู้</h3>
+  <p>ตาราง WHO 2022 ภาคผนวก หน้า 50 ให้ผู้ป่วยน้ำหนัก 65 กก. ขึ้นไปได้ Isoniazid 375 มก. และ Rifampicin 750 มก. และใช้ช่วง Ethambutol 15 ถึง 25 มก./กก. เครื่องมือนี้ใช้ตามแนวทางไทย คือ Isoniazid ไม่เกิน 300 Rifampicin ไม่เกิน 600 มก. และช่วง Ethambutol 15 ถึง 20 มก./กก.</p>
+  <h3>อ้างอิง</h3>
+  <ul>
+    <li>กองวัณโรค กรมควบคุมโรค. แนวทางการควบคุมวัณโรคประเทศไทย พ.ศ. 2564. กรุงเทพฯ, กองวัณโรค, 2564.</li>
+    <li>World Health Organization. WHO operational handbook on tuberculosis, Module 4 (treatment), drug-susceptible tuberculosis treatment. Geneva, WHO, 2022.</li>
+  </ul>
+  <p class="foot">TB Calculator เวอร์ชัน 1.0 พฤศจิกายน 2569 พัฒนาโดย DoseLogic<br>เครื่องมือนี้ช่วยเภสัชกรคิด ไม่ได้ตัดสินแทน ตรวจกับคำสั่งแพทย์และแนวทางของโรงพยาบาลทุกครั้ง</p>
+</section>
+
+<a class="back" href="../">กลับไปเครื่องคำนวณ</a>
+</body>
+</html>

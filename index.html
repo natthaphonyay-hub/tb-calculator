@@ -97,7 +97,8 @@
   .flag button { min-height: 40px; border-radius: 3px; border: 1.5px solid currentColor; background: rgba(255, 255, 255, 0.16); padding: 4px 10px; font-weight: 600; font-size: var(--fs-sm); }
   .flag.yellow button { background: rgba(255, 255, 255, 0.45); }
   .editor { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 8px 0 2px; }
-  .editor .who { font-size: var(--fs-cap); font-weight: 600; color: var(--ink-2); min-width: 3em; }
+  .editor .who { flex: 0 0 100%; font-size: var(--fs-cap); font-weight: 600; color: var(--ink-2); }
+  .cell .tag { align-self: flex-start; margin-top: 2px; }
   .stepper { display: flex; align-items: center; gap: 6px; }
   .stepper .s-lab { font-size: var(--fs-sm); font-weight: 600; min-width: 4.2em; }
   .stepper button { width: 40px; height: 40px; border: 1.5px solid var(--ink); border-radius: 3px; background: #fff; font-weight: 800; font-size: 18px; line-height: 1; }
@@ -156,6 +157,8 @@
   .footer .fsub { font-size: var(--fs-cap); opacity: 0.8; }
   .footer .credit { text-align: right; font-size: var(--fs-cap); }
   .footer .org { font-family: var(--mono); font-weight: 700; font-size: 15px; }
+  .footer .manual-link { margin-top: 6px; }
+  .footer .manual-link a { color: inherit; font-weight: 700; font-size: var(--fs-sm); display: inline-block; padding: 6px 0; }
   .footer .legal { font-size: var(--fs-cap); opacity: 0.85; border-top: 1px solid rgba(255, 255, 255, 0.18); padding-top: 10px; }
 
   @media (max-width: 560px) {
@@ -309,9 +312,9 @@
   <div class="footer-inner">
     <div class="footer-top">
       <div><h3>TB Calculator</h3><div class="fsub">Tuberculosis Dose Tool</div></div>
-      <div class="credit"><div>พัฒนาโดย</div><div class="org">DoseLogic</div><div>Version 1.0 | November 2026</div></div>
+      <div class="credit"><div>พัฒนาโดย</div><div class="org">DoseLogic</div><div>Version 1.0 | November 2026</div><div class="manual-link"><a href="manual/">คู่มือการใช้</a></div></div>
     </div>
-    <div class="legal">ขนาดยาตามแนวทางการควบคุมวัณโรคประเทศไทย พ.ศ. 2564 กองวัณโรค กรมควบคุมโรค (ตาราง 5.1 หน้า 60) เครื่องมือนี้ช่วยเภสัชกรคิด ไม่ได้ตัดสินแทน ตรวจกับคำสั่งแพทย์และแนวทางของโรงพยาบาลทุกครั้ง</div>
+    <div class="legal">ขนาดยาตามแนวทางการควบคุมวัณโรคประเทศไทย พ.ศ. 2564 กองวัณโรค กรมควบคุมโรค (ตาราง 5.1 หน้า 60) เครื่องมือนี้ช่วยเภสัชกรคิด ไม่ได้ตัดสินแทน ตรวจกับคำสั่งแพทย์และแนวทางของโรงพยาบาลทุกครั้ง<span id="logNotice" hidden><br>เว็บนี้นับจำนวนการเข้าใช้และเก็บค่าที่ใช้คำนวณแบบไม่ระบุตัวตน เพื่อปรับปรุงเครื่องมือ ห้ามกรอกชื่อหรือ HN ผู้ป่วย</span></div>
   </div>
 </footer>
 
@@ -678,6 +681,51 @@ function maxTag(c, shown, w10) {
   return d.cap != null && shown.dose === d.cap && mgkg10(shown.dose, w10) < d.lo * 10 ? '<span class="tag">ขนาดสูงสุด</span>' : '';
 }
 
+/* ---------- เก็บข้อมูลการใช้งาน (ไม่ระบุตัวตน) แบบเดียวกับ Drip และ ATB ----------
+   ส่งเข้า Google Sheet DoseLogic (โค้ดฝั่งชีต DoseLogic-หน้าแรก/apps-script-เก็บข้อมูล/Code.gs ในคลังของพี่)
+   ไม่ส่งชื่อ HN หรืออายุ ปิดเองเมื่อเปิดจากไฟล์ในเครื่อง ใน Chrome อัตโนมัติ (ทดสอบ ถ่ายรูปคู่มือ) และเมื่อมี ?nolog ในลิงก์
+   ส่งไม่สำเร็จก็ไม่กระทบเครื่องคำนวณ */
+const LOG_URL = 'https://script.google.com/macros/s/AKfycbyelczLFGoo5j3icdHnCxg07gW3FbS3s95XX7grzbulcAfHgzEh0SByhl44W-89bs580A/exec';
+const LOG_VER = '1.0';
+let logTimer = 0, logLastKey = '', logSnap = null, logExampleAt = 0, logUserAt = 0;
+function logOn() {
+  return !!LOG_URL && location.protocol === 'https:' && !navigator.webdriver
+    && !/HeadlessChrome/.test(navigator.userAgent) && !/[?&]nolog\b/.test(location.search);
+}
+function logDevice() {
+  try {
+    let id = localStorage.getItem('dl-dev');
+    if (!id) { id = Math.random().toString(36).slice(2, 10); localStorage.setItem('dl-dev', id); }
+    return id;
+  } catch { return ''; }
+}
+function logSend(kind, data) {
+  if (!logOn()) return;
+  try {
+    const body = JSON.stringify(Object.assign({ v: 1, kind, dev: logDevice(), ver: LOG_VER }, data));
+    fetch(LOG_URL, { method: 'POST', mode: 'no-cors', keepalive: true, headers: { 'Content-Type': 'text/plain' }, body }).catch(() => {});
+  } catch { /* ห้ามขวางหน้าเว็บ */ }
+}
+function logVisit() {
+  if (logOn()) { const n = document.getElementById('logNotice'); if (n) n.hidden = false; }
+  let ref = 'เปิดตรง';
+  try { ref = window.self !== window.top ? 'ฝังใน Sites' : (document.referrer ? new URL(document.referrer).hostname : 'เปิดตรง'); } catch { ref = 'ฝังใน Sites'; }
+  logSend('visit', { tool: 'tb', w: window.innerWidth, ref });
+}
+// คำนวณ 1 ครั้ง ส่งเมื่อตัวเลขนิ่ง 8 วินาที จะได้ไม่ส่งทุกครั้งที่พิมพ์
+function logQueue(snap) {
+  logSnap = snap;
+  clearTimeout(logTimer);
+  logTimer = setTimeout(() => {
+    const key = JSON.stringify(logSnap);
+    if (key === logLastKey) return;
+    logLastKey = key;
+    logSend('tb', Object.assign({ event: 'คำนวณ', example: logExampleAt > logUserAt }, logSnap));
+  }, 8000);
+}
+function logCopy(what) { if (logSnap) logSend('tb', Object.assign({ event: what, example: logExampleAt > logUserAt }, logSnap)); }
+const flagCount = list => ['red', 'yellow', 'blue'].map(f => `${f} ${list.filter(x => x === f).length}`).filter(s => !s.endsWith(' 0')).join(', ');
+
 /* ---------- หน้าเริ่มยาใหม่ ---------- */
 let startCtx = null;
 function renderStart() {
@@ -732,6 +780,9 @@ function renderStart() {
   $('#sLine').textContent = buildStartShort(plan, start);
   showNote('s');
   $('#sResult').hidden = false;
+  const sFlags = [...document.querySelectorAll('#sDrugs .flag')].map(f => f.dataset.flag);
+  logQueue({ page: 'เริ่มยา', weight: fmtW(reg.w10), oldWeight: '', method: reg.method, phase: '', result: '',
+    changed: '', edited: ORDER.filter(c => plan.doses[c].edited).join(' '), flags: flagCount(sFlags), note: STATE.start.note });
 }
 
 /* ---------- หน้าปรับยาตามน้ำหนัก ---------- */
@@ -774,13 +825,16 @@ function renderAdjust() {
       <div class="cmp-name"><span class="code">${c}</span>${DRUGS[c].name}<div class="chg">${isChg ? 'เปลี่ยน' : 'เท่าเดิม'}</div></div>
       ${cell('cur', cur, oldReg.w10, `เดิม ${fmtW(oldReg.w10)} กก.`)}${cell('new', neu, newReg.w10, `ใหม่ ${fmtW(newReg.w10)} กก.`)}
       ${flagHTML(c, newReg.drugs[c], neu, newReg.w10, 'new')}
-      ${edit ? steppers(c, cur.tabs, 'cur', 'เดิม') + steppers(c, neu.tabs, 'new', 'ใหม่') : ''}
+      ${edit ? steppers(c, cur.tabs, 'cur', 'เดิม (ที่กินอยู่)') + steppers(c, neu.tabs, 'new', 'ใหม่') : ''}
       ${cur.edited || neu.edited ? `<div class="row-tools">${cur.edited ? resetBtn(c, 'cur', 'เดิมกลับตามตาราง') : ''} ${neu.edited ? resetBtn(c, 'new', 'ใหม่กลับตามตาราง') : ''}</div>` : ''}</div>`;
   }).join('');
   $('#aNote').textContent = buildAdjustNote(adj, phase, newPlan, when);
   $('#aLine').textContent = buildAdjustShort(adj, phase, newPlan);
   showNote('a');
   $('#aResult').hidden = false;
+  const aFlags = [...document.querySelectorAll('#aCompare .flag')].map(f => f.dataset.flag);
+  logQueue({ page: 'ปรับยา', weight: fmtW(newReg.w10), oldWeight: fmtW(oldReg.w10), method: newReg.method, phase, result: changed.length ? 'ปรับยา' : 'ไม่ต้องปรับยา',
+    changed: changed.join(' '), edited: codes.filter(c => newPlan.doses[c].edited || curPlan.doses[c].edited).join(' '), flags: flagCount(aFlags), note: STATE.adj.note });
 }
 
 /* ---------- note ฉบับเต็ม แบบย่อ ---------- */
@@ -842,6 +896,7 @@ document.addEventListener('click', async e => {
   const p = b.dataset.copyPage, st = p === 's' ? STATE.start : STATE.adj;
   const pre = $(st.note === 'full' ? `#${p}Note` : `#${p}Line`);
   const ok = await copyText(pre.textContent);
+  logCopy(st.note === 'full' ? 'คัดลอก note ฉบับเต็ม' : 'คัดลอก note แบบย่อ');
   const label = b.dataset.label || (b.dataset.label = b.textContent);
   if (ok) { b.classList.add('done'); b.textContent = st.note === 'full' ? 'คัดลอกฉบับเต็มแล้ว' : 'คัดลอกแบบย่อแล้ว'; }
   else {
@@ -876,10 +931,12 @@ document.querySelectorAll('.seg button[data-phase]').forEach(b => b.addEventList
   document.querySelectorAll('.seg button[data-phase]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   renderAdjust();
 }));
-$('#sExample').addEventListener('click', () => { $('#sAge').value = '45'; $('#sWeight').value = '52.0'; STATE.start.edits = {}; renderStart(); });
-$('#aExample').addEventListener('click', () => { $('#aAge').value = '45'; $('#aOld').value = '48.0'; $('#aNew').value = '52.0'; STATE.adj.cur = {}; STATE.adj.neu = {}; renderAdjust(); });
+$('#sExample').addEventListener('click', () => { logExampleAt = Date.now(); $('#sAge').value = '45'; $('#sWeight').value = '52.0'; STATE.start.edits = {}; renderStart(); });
+$('#aExample').addEventListener('click', () => { logExampleAt = Date.now(); $('#aAge').value = '45'; $('#aOld').value = '48.0'; $('#aNew').value = '52.0'; STATE.adj.cur = {}; STATE.adj.neu = {}; renderAdjust(); });
 $('#sDate').value = todayISO(); $('#aDate').value = todayISO();
 renderStart(); renderAdjust();
+document.addEventListener('input', e => { if (e.isTrusted) logUserAt = Date.now(); }, true);
+logVisit();
 // ?example=1 เปิดพร้อมตัวอย่างหน้าเริ่มยา, ?example=adjust เปิดตัวอย่างหน้าปรับยา (ใช้ทำคู่มือและตรวจหน้าตา)
 const EXAMPLE = new URLSearchParams(location.search).get('example');
 if (EXAMPLE === '1') $('#sExample').click();
