@@ -10,8 +10,8 @@ from fractions import Fraction
 DRUGS = {
     "H": ([100], 4, 6, 5, 300),
     "R": ([300, 450], 8, 12, 10, 600),
-    "Z": ([500], 20, 30, 25, None),
-    "E": ([400, 500], 15, 20, 15, None),
+    "Z": ([500], 20, 30, 25, 2000),
+    "E": ([400, 500], 15, 20, 15, 1600),
 }
 ORDER = ["H", "R", "Z", "E"]
 ROWS = {
@@ -118,7 +118,7 @@ def regimen(age, weight):
         else:
             dose = ROWS[method][code]
         t = _tenths(dose, w)
-        if method == "row3" and code in ("Z", "E") and t < lo * 10:
+        if method == "row3" and code in ("Z", "E") and t < lo * 10 and dose != mx:
             flag = "blue"
             suggest = _calc(code, w)[0]
         atmax = mx is not None and dose == mx and t < lo * 10
@@ -213,7 +213,7 @@ def _selftest():
         "100.5": ("row3", {"H": (300, {"100": 3}, "3.0"), "R": (600, {"300": 2}, "6.0"),
                            "Z": (2000, {"500": 4}, "19.9"), "E": (1200, {"400": 3}, "11.9")},
                   {"H": dict(atmax=True), "R": dict(atmax=True),
-                   "Z": dict(flag="blue", suggest=2500), "E": dict(flag="blue", suggest=1600)}),
+                   "Z": dict(atmax=True), "E": dict(flag="blue", suggest=1600)}),
     }
     for w, (meth, ex, ov) in t91.items():
         r = regimen(45, w)
@@ -273,7 +273,13 @@ def _selftest():
     chk("80.2 E no flag", (e("80.2")["mgkg"], e("80.2")["flag"]), ("15.0", None))
     chk("80.3 E blue", (e("80.3")["mgkg"], e("80.3")["flag"], e("80.3")["suggest"]), ("14.9", "blue", 1300))
     chk("100.2 Z no flag", (z("100.2")["mgkg"], z("100.2")["flag"]), ("20.0", None))
-    chk("100.3 Z blue", (z("100.3")["mgkg"], z("100.3")["flag"]), ("19.9", "blue"))
+    chk("100.3 Z at max, no flag (spec 10.11)", (z("100.3")["mgkg"], z("100.3")["flag"]), ("19.9", None))
+    for w in ("107.0", "107.1", "150.0", "200.0"):
+        zz, ee = z(w), e(w)
+        chk("Z " + w, (zz["dose"], zz["flag"], zz["suggest"], zz["atmax"]), (2000, None, None, True))
+        chk("E " + w, (ee["dose"], ee["flag"], ee["suggest"], ee["atmax"]), (1200, "blue", 1600, False))
+    chk("Z 100.2", z("100.2")["atmax"], False)
+    chk("Z 100.3 atmax", z("100.3")["atmax"], True)
     chk("adjust bad old", adjust(45, "10", "52", "intensive"), {"ok": False, "reason": "weight"})
     chk("adjust bad new", adjust(45, "52", "52.55", "intensive"), {"ok": False, "reason": "decimal"})
     chk("adjust current", adjust(45, "52", "52", "continuation", {"H": 300, "R": 450}),

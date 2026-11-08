@@ -15,12 +15,13 @@
    [N] แนวทางการควบคุมวัณโรคประเทศไทย พ.ศ. 2564 เลขหน้าในเล่ม
    [พี่] พี่เคาะ 2026-11-08 */
 const DRUGS = {
-  // ช่วง มก./กก./วัน [N 60 หัวตาราง 5.1] · เป้า H R Z = กึ่งกลางช่วง, E 15 [N 62] · ขนาดสูงสุด = ค่าสูงสุดที่ตาราง 5.1 ใช้ [N 60]
+  // ช่วง มก./กก./วัน [N 60 หัวตาราง 5.1] · เป้า H R Z = กึ่งกลางช่วง, E 15 [N 62]
+  // ขนาดสูงสุด H 300 R 600 = ค่าสูงสุดที่ตาราง 5.1 ใช้ [N 60] · Z 2000 E 1600 = ช่วง 65 กก. ขึ้นไปของ WHO DS-TB handbook 2022 หน้า 50 [พี่ 10.11]
   // ขนาดเม็ด: เม็ดเดี่ยวที่ รพ. มี [พี่]
   H: { name: 'Isoniazid', short: 'INH', unit: 'tab', th: 'เม็ด', strengths: [100], lo: 4, hi: 6, target: 5, cap: 300 },
   R: { name: 'Rifampicin', short: 'Rifampicin', unit: 'cap', th: 'แคปซูล', strengths: [300, 450], lo: 8, hi: 12, target: 10, cap: 600 },
-  Z: { name: 'Pyrazinamide', short: 'PZA', unit: 'tab', th: 'เม็ด', strengths: [500], lo: 20, hi: 30, target: 25, cap: null },
-  E: { name: 'Ethambutol', short: 'Ethambutol', unit: 'tab', th: 'เม็ด', strengths: [400, 500], lo: 15, hi: 20, target: 15, cap: null },
+  Z: { name: 'Pyrazinamide', short: 'PZA', unit: 'tab', th: 'เม็ด', strengths: [500], lo: 20, hi: 30, target: 25, cap: 2000 },
+  E: { name: 'Ethambutol', short: 'Ethambutol', unit: 'tab', th: 'เม็ด', strengths: [400, 500], lo: 15, hi: 20, target: 15, cap: 1600 },
 };
 const ORDER = ['H', 'R', 'Z', 'E'];
 const PHASE_DRUGS = { intensive: ['H', 'R', 'Z', 'E'], continuation: ['H', 'R'] };
@@ -145,7 +146,7 @@ function regimen(age, weight) { // สเปก 4 และ 5.2
       drugs[code] = it;
     } else {
       const it = drugItem(code, row.dose[code], w10);
-      if (row.key === 'row3' && (code === 'Z' || code === 'E') && mgkg10(it.dose, w10) < DRUGS[code].lo * 10) {
+      if (row.key === 'row3' && (code === 'Z' || code === 'E') && mgkg10(it.dose, w10) < DRUGS[code].lo * 10 && it.dose !== DRUGS[code].cap) {
         it.flag = 'blue'; it.suggest = chooseCalc(code, w10).dose;
       }
       drugs[code] = it;

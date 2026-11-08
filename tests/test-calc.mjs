@@ -58,13 +58,26 @@ test('9.1 flags: 80.5 kg E blue with suggestion 1,300; H R at maximum without wa
   eq(api.tabsMap('E', 1300), { 400: 2, 500: 1 });
   eq([r.drugs.H.atmax, r.drugs.R.atmax, r.drugs.H.flag, r.drugs.R.flag, r.drugs.Z.flag], [true, true, null, null, null]);
 });
-test('9.1 flags: 100.5 kg Z blue suggest 2,500 and E blue suggest 1,600', () => {
+test('9.1 flags: 100.5 kg Z already at maximum 2,000 (no warning), E blue suggest 1,600', () => {
   const r = reg('100.5');
-  eq([r.drugs.Z.flag, r.drugs.Z.suggest, r.drugs.E.flag, r.drugs.E.suggest], ['blue', 2500, 'blue', 1600]);
+  eq([r.drugs.Z.flag, r.drugs.Z.suggest, r.drugs.Z.atmax], [null, null, true]);
+  eq([r.drugs.E.flag, r.drugs.E.suggest], ['blue', 1600]);
 });
-test('5.2 first weights where row 3 drops below range: E at 80.3, Z at 100.3', () => {
+test('5.2 first weights where row 3 drops below range: E blue at 80.3, Z reaches maximum at 100.3', () => {
   eq([reg('80.2').drugs.E.flag, reg('80.3').drugs.E.flag], [null, 'blue']);
-  eq([reg('100.2').drugs.Z.flag, reg('100.3').drugs.Z.flag], [null, 'blue']);
+  eq([reg('100.2').drugs.Z.atmax, reg('100.3').drugs.Z.atmax, reg('100.3').drugs.Z.flag], [false, true, null]);
+});
+test('10.11 suggestions never pass the maximum: Z none, E at most 1,600 (every weight 70.0 to 200.0)', () => {
+  let n = 0;
+  for (let w10 = 700; w10 <= 2000; w10++) {
+    const r = reg(`${Math.floor(w10 / 10)}.${w10 % 10}`);
+    assert.equal(r.drugs.Z.suggest, null, `Z ${w10}`);
+    assert.ok(r.drugs.E.suggest == null || r.drugs.E.suggest <= 1600, `E ${w10}`);
+    n++;
+  }
+  checks += n;
+  eq([reg('107.0').drugs.E.suggest, reg('107.1').drugs.E.suggest, reg('150.0').drugs.E.suggest], [1600, 1600, 1600]);
+  eq([api.mgkg10(1600, 1070), api.mgkg10(1600, 1071)], [150, 149]);
 });
 
 /* ---------- spec 9.2: adjust pairs ---------- */
@@ -146,6 +159,10 @@ test('5.2 edited doses: above cap red, above range yellow, below range blue, at 
   eq(api.editFlag('E', 400, 520), 'blue');
   eq(api.editFlag('H', 300, 800), null);
   eq(api.editFlag('E', 1000, 520), null);
+  eq(api.editFlag('Z', 2500, 1200), 'red');
+  eq(api.editFlag('E', 1700, 1200), 'red');
+  eq(api.editFlag('E', 1600, 1500), null);
+  eq(api.editFlag('Z', 2000, 1500), null);
 });
 test('8.1 edited dose gets "(เภสัชปรับจากตาราง)" in the note; unchanged edit does not', () => {
   const r = reg('80.5');
