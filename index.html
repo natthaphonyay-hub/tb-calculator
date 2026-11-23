@@ -255,6 +255,47 @@
   setTimeout(hide, 4000);
 })();
 </script>
+<!-- Chicken Kit ไก่ตัวเล็กข้างผล เด้งระหว่างพิมพ์ หยุดเมื่อเลิกพิมพ์ 0.6 วินาที (พี่เลือกแบบ 1 2026-11-23) ไม่แตะตัวคำนวณ -->
+<style>
+.ck-mini{display:inline-flex;flex-shrink:0;margin-left:auto;align-self:center;pointer-events:none}
+.ck-mini svg{width:100%;height:100%;display:block}
+.ck-mini.ck-think{animation:ck-mbob .45s ease-in-out infinite}
+@keyframes ck-mbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@media (prefers-reduced-motion: reduce){.ck-mini.ck-think{animation:none}}
+</style>
+<script>
+(function () {
+  var src = document.querySelector('#ck-loader svg');
+  if (!src) return;
+  var svg = src.cloneNode(true), TARGETS = [{"sel":"#sResult .band","size":20},{"sel":"#aResult .band","size":20}], minis = [], timer = null;
+  function mount() {
+    TARGETS.forEach(function (t) {
+      var el = document.querySelector(t.sel);
+      if (el && t.parent) el = el.parentElement;
+      if (!el) return;
+      var m = document.createElement('span');
+      m.className = 'ck-mini'; m.setAttribute('aria-hidden', 'true');
+      m.style.width = m.style.height = t.size + 'px';
+      m.appendChild(svg.cloneNode(true));
+      var kids = el.children;
+      if (kids.length >= 2) {
+        var g = getComputedStyle(el).columnGap;
+        if (!g || g === 'normal' || g === '0px') m.style.marginRight = '12px';
+        el.insertBefore(m, kids[kids.length - 1]);
+      } else el.appendChild(m);
+      minis.push(m);
+    });
+  }
+  function think(e) {
+    if (e.type === 'click' && !(e.target.closest && e.target.closest('button'))) return;
+    minis.forEach(function (m) { m.classList.add('ck-think'); });
+    clearTimeout(timer);
+    timer = setTimeout(function () { minis.forEach(function (m) { m.classList.remove('ck-think'); }); }, 600);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
+  ['input', 'change', 'click'].forEach(function (ev) { document.addEventListener(ev, think, true); });
+})();
+</script>
 <header class="header">
   <div class="header-inner">
     <div class="header-icon" aria-hidden="true">

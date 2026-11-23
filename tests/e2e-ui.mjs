@@ -47,6 +47,7 @@ async function load(width = 1280, height = 900) {
   await send('Page.navigate', { url });
   for (let i = 0; i < 50; i++) { if (await ev('document.readyState') === 'complete') break; await sleep(100); }
   await ev('document.fonts.ready.then(() => true)');
+  for (let i = 0; i < 50; i++) { if (await ev("!document.getElementById('ck-loader')")) break; await sleep(100); } // รอหน้ารอโหลดไก่หายก่อน เหมือนคนรอก่อนกด
 }
 async function shot(name, width) {
   const h = await ev('Math.ceil(document.documentElement.scrollHeight)');
